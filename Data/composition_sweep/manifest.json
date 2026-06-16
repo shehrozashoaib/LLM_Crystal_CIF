@@ -1,0 +1,182 @@
+{
+  "params": {
+    "total_train": 24000,
+    "total_val": 4000,
+    "test_frozen_n": 1000,
+    "master_seed": 3407,
+    "ratios_mp20_pct": [
+      0,
+      25,
+      50,
+      75,
+      100
+    ],
+    "balance": "count"
+  },
+  "split_disjointness_checks": {
+    "mp52_train_x_test": 0,
+    "mp52_train_x_val": 0,
+    "mp20_train_x_val": 0
+  },
+  "leakage_filter": {
+    "mpts52_eval_ids": 13096,
+    "mp20_train_dropped": 2982,
+    "mp20_train_usable": 24154,
+    "mp20_val_dropped": 981,
+    "mp20_val_usable": 8066
+  },
+  "frozen_test": {
+    "file": "Data/composition_sweep/test_frozen_mp52_1000.csv",
+    "n": 1000,
+    "ids_hash": "6cf86534cecbfff6",
+    "source": "mp_52_test_cifs_description_reduced_withmpids.csv",
+    "token_proxy": {
+      "median_chars": 1946.0,
+      "mean_chars": 2028.918,
+      "p95_chars": 3289.0,
+      "max_chars": 3528
+    }
+  },
+  "runs": [
+    {
+      "ratio_mp20_pct": 0,
+      "tag": "00",
+      "train_file": "Data/composition_sweep/train_mp20_00.csv",
+      "val_file": "Data/composition_sweep/val_mp20_00.csv",
+      "train": {
+        "n_total": 24000,
+        "n_mp20": 0,
+        "n_mp52": 24000,
+        "unique_ids": 24000,
+        "token_proxy": {
+          "median_chars": 1466.0,
+          "mean_chars": 1646.2070416666666,
+          "p95_chars": 3025.0,
+          "max_chars": 3531
+        }
+      },
+      "val": {
+        "n_total": 4000,
+        "n_mp20": 0,
+        "n_mp52": 4000,
+        "unique_ids": 4000
+      },
+      "seeds": {
+        "train": 3507,
+        "val": 3607
+      }
+    },
+    {
+      "ratio_mp20_pct": 25,
+      "tag": "25",
+      "train_file": "Data/composition_sweep/train_mp20_25.csv",
+      "val_file": "Data/composition_sweep/val_mp20_25.csv",
+      "train": {
+        "n_total": 24000,
+        "n_mp20": 6000,
+        "n_mp52": 18000,
+        "unique_ids": 24000,
+        "token_proxy": {
+          "median_chars": 1315.0,
+          "mean_chars": 1531.66075,
+          "p95_chars": 2894.0,
+          "max_chars": 3531
+        }
+      },
+      "val": {
+        "n_total": 4000,
+        "n_mp20": 1000,
+        "n_mp52": 3000,
+        "unique_ids": 4000
+      },
+      "seeds": {
+        "train": 3508,
+        "val": 3608
+      }
+    },
+    {
+      "ratio_mp20_pct": 50,
+      "tag": "50",
+      "train_file": "Data/composition_sweep/train_mp20_50.csv",
+      "val_file": "Data/composition_sweep/val_mp20_50.csv",
+      "train": {
+        "n_total": 24000,
+        "n_mp20": 12000,
+        "n_mp52": 12000,
+        "unique_ids": 24000,
+        "token_proxy": {
+          "median_chars": 1294.0,
+          "mean_chars": 1425.0885833333334,
+          "p95_chars": 2770.0,
+          "max_chars": 3531
+        }
+      },
+      "val": {
+        "n_total": 4000,
+        "n_mp20": 2000,
+        "n_mp52": 2000,
+        "unique_ids": 4000
+      },
+      "seeds": {
+        "train": 3509,
+        "val": 3609
+      }
+    },
+    {
+      "ratio_mp20_pct": 75,
+      "tag": "75",
+      "train_file": "Data/composition_sweep/train_mp20_75.csv",
+      "val_file": "Data/composition_sweep/val_mp20_75.csv",
+      "train": {
+        "n_total": 24000,
+        "n_mp20": 18000,
+        "n_mp52": 6000,
+        "unique_ids": 24000,
+        "token_proxy": {
+          "median_chars": 1204.0,
+          "mean_chars": 1316.1463333333334,
+          "p95_chars": 2261.0499999999993,
+          "max_chars": 3531
+        }
+      },
+      "val": {
+        "n_total": 4000,
+        "n_mp20": 3000,
+        "n_mp52": 1000,
+        "unique_ids": 4000
+      },
+      "seeds": {
+        "train": 3510,
+        "val": 3610
+      }
+    },
+    {
+      "ratio_mp20_pct": 100,
+      "tag": "100",
+      "train_file": "Data/composition_sweep/train_mp20_100.csv",
+      "val_file": "Data/composition_sweep/val_mp20_100.csv",
+      "train": {
+        "n_total": 24000,
+        "n_mp20": 24000,
+        "n_mp52": 0,
+        "unique_ids": 24000,
+        "token_proxy": {
+          "median_chars": 1189.0,
+          "mean_chars": 1204.7344583333334,
+          "p95_chars": 1730.0,
+          "max_chars": 1772
+        }
+      },
+      "val": {
+        "n_total": 4000,
+        "n_mp20": 4000,
+        "n_mp52": 0,
+        "unique_ids": 4000
+      },
+      "seeds": {
+        "train": 3511,
+        "val": 3611
+      }
+    }
+  ]
+}

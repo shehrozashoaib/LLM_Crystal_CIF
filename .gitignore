@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/
+# never commit model weights / checkpoints / raw run dirs
+*final_model*/
+*checkpoints*/
+*.safetensors
+*.bin
+# scratch
+*.log
+.DS_Store
