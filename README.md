@@ -89,17 +89,27 @@ Resumable (completed stages are skipped). Override knobs via env vars (`MAX_STEP
 
 ## Results so far
 
-See **[`experiment_framework.md`](experiment_framework.md)** for the live status table.
-Composition sweep, best-of-10 structure match on the full 8,096 MPTS-52 test set:
+See **[`experiment_framework.md`](experiment_framework.md)** for the full status table.
 
-| Ratio MP-20:MPTS-52 | Best-of-10 match | Status |
-|---|---:|---|
-| 0:100 (baseline)  | 30.1% | ✅ done |
-| 25:75             |   –   | ⏳ training |
-| 50:50             | 29.5% | ✅ done |
-| 75:25             |   –   | ⬜ pending |
-| 100:0             |   –   | ⬜ pending |
+**Composition sweep — COMPLETE.** Best-of-10 structure match on the full 8,096 MPTS-52 test set,
+at constant 24,000-crystal volume and pinned 4,500 steps (only the MP-20:MPTS-52 ratio varies):
 
-Dominant failure mode (from the RMSE panel): **right composition (~92%), valid CIF (~76%), but
-wrong geometry/symmetry** — near-miss RMS clusters at 0.5–1.0 Å (nothing beyond 1.5 Å), which the
-old binary match metric hid.
+| Ratio MP-20:MPTS-52 | Best-of-10 match | Strict matched-RMS (median Å) | Status |
+|---|---:|---:|---|
+| 0:100 (pure MPTS-52 baseline) | 30.1% | 0.050 | ✅ |
+| 25:75                          | **30.4%** | 0.049 | ✅ |
+| 50:50                          | 29.5% | 0.046 | ✅ |
+| 75:25                          | 28.0% | 0.042 | ✅ |
+| 100:0 (pure MP-20)             | 26.6% | 0.039 | ✅ |
+
+**Key finding:** at matched volume **and** matched steps, adding MP-20 does **not** beat the baseline —
+match peaks at low MP-20 (0–25%, ~30%) and declines monotonically to 26.6% at pure MP-20. The
+published "combined beats baseline" gain therefore came from **volume**, not symmetry composition —
+the decisive reviewer concern, answered. (Endpoints differ clearly on 8,096 paired samples; the
+0/25/50 middle is within seed noise → needs ≥3 seeds + McNemar to separate.)
+
+Secondary (from the RMSE panel): more MP-20 → **tighter** matches (median RMS 0.050→0.039 Å) but
+**fewer** of them — MP-20 teaches precise high-symmetry geometry at the cost of low-symmetry coverage.
+Dominant failure mode throughout: right composition (~92%), valid CIF (~76%), but wrong
+geometry/symmetry (near-miss RMS clusters at 0.5–1.0 Å, nothing beyond 1.5 Å) — which the old binary
+match metric hid.

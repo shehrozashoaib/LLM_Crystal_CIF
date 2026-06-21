@@ -12,10 +12,11 @@ Pipeline implemented and verified end-to-end (dataset build → SFT train → vL
 | Lever | Run | Status | Best-of-10 |
 |---|---|---|---:|
 | **Composition** | 0:100 (baseline) | ✅ done | **30.1%** |
-| **Composition** | 25:75 | ⏳ training | – |
+| **Composition** | 25:75 | ✅ done | **30.4%** |
 | **Composition** | 50:50 | ✅ done | **29.5%** |
-| **Composition** | 75:25 | ⬜ pending | – |
-| **Composition** | 100:0 | ⬜ pending | – |
+| **Composition** | 75:25 | ✅ done | **28.0%** |
+| **Composition** | 100:0 | ✅ done | **26.6%** |
+| → *finding* | composition sweep COMPLETE | ✅ | match ↓ monotonically as MP-20 ↑ at matched volume/steps → gain was **volume, not composition** |
 | Volume control (#2) | combined-54k vs oversampled-MPTS | ⬜ not started | – |
 | LoRA rank (#3) | r ∈ {16,32,64,128} | ⬜ not started | – |
 | Curriculum (#4–5) | mixed vs fwd/rev + forgetting | ⬜ not started | – |
@@ -183,7 +184,7 @@ GRPO is "helpful" only if it beats **both** beyond the seed band.
 
 | # | Run | Lever | Held fixed | Changed | Kills which concern |
 |---|---|---|---|---|---|
-| 1 | Composition swap sweep (0/25/50/75/100% MP-20 @ **24k**) ⏳ *(00,50 done; 25 running; 75,100 pending — see §0)* | Data | size, steps, seeds, split | ratio | #1 (volume vs composition) |
+| 1 | Composition swap sweep (0/25/50/75/100% MP-20 @ **24k**) ✅ *(all 5 done — match ↓ with MP-20; see §0)* | Data | size, steps, seeds, split | ratio | #1 (volume vs composition) |
 | 2 | Combined-54k vs oversampled-MPTS-54k | Data | size, steps | mixture vs duplication | #1 (volume control) |
 | 3 | LoRA rank sweep r∈{16,32,64,128} | Params | data, steps | rank | ranking realism |
 | 4 | Mixed vs curriculum-forward @ matched S | Schedule | pool, steps, exposure | order | #1 (schedule confound) |
