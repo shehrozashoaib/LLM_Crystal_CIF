@@ -1,0 +1,13 @@
+Validation Summary for generated/curr_fwd_p1_mp20/generated_cifs_curr_fwd_p1_10seq_maxtok3072_0_999.csv
+Generated on: 2026-06-16 18:57:14
+Total samples: 1000
+Success rate: 65.7%
+
+================================================================================
+RMSE PANEL (StructureMatcher RMS, Å)
+================================================================================
+Strict matched RMS  (n=4652): mean=0.080  median=0.009  std=0.144  min=0.000  max=0.499
+Near-miss RMS (all valid gens, n=7523): mean=0.264  median=0.105  std=0.278
+  bins:  <0.5: 5517   0.5-1.0: 1966   1.0-1.5: 40   >=1.5: 0
+
+Detailed statistics saved in: experiments/curr_fwd_p1/forgetting/validation_20260616_184615_mp20_16bit_10sequences_mp20_curr_fwd_p1/validation_20260616_184615_10sequences_mp20_curr_fwd_p1_16bit.csv

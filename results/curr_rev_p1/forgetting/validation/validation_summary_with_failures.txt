@@ -1,0 +1,22 @@
+Validation Summary
+Generated on: 2026-06-17 14:39:16.178329
+Total samples: 1000
+Success rate: 53.5%
+
+FAILURE ANALYSIS
+==================================================
+Complete failures: 465/1000 (46.5%)
+
+Top 5 Failing Space Groups:
+  44: 100.0% (8.0/8.0)
+  7: 100.0% (5.0/5.0)
+  8: 100.0% (18.0/18.0)
+  224: 100.0% (1.0/1.0)
+  54: 100.0% (1.0/1.0)
+
+Most Problematic Compositions:
+  LiMnF4: 2 failures
+  SnBi: 2 failures
+  MnOF: 2 failures
+  CeMg2: 2 failures
+  NaNiO2: 2 failures

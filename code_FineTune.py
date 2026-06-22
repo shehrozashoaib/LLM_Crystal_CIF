@@ -61,11 +61,57 @@ def parse_args():
     p.add_argument("--weight_decay", type=float, default=0.01)
     p.add_argument("--base_model", default="Qwen2.5-7B-Instruct")
     p.add_argument("--seed", type=int, default=3407)
+    p.add_argument("--arch", choices=["auto", "a100", "gh200"], default="auto",
+                   help="GPU architecture. Controls the attention backend: gh200 "
+                        "(Hopper sm_90, aarch64) pins cuDNN SDPA to avoid the MATH-backend "
+                        "OOM (see README_GH200_SETUP.md); a100 (Ampere sm_80) uses the stock "
+                        "flash/SDPA path. 'auto' detects from compute capability. Set "
+                        "explicitly to avoid running GH200-specific code on an A100.")
+    p.add_argument("--init_adapter", default="",
+                   help="path to an existing LoRA adapter dir to CONTINUE training "
+                        "(curriculum phase 2 / continued-SFT). Empty => fresh LoRA on the "
+                        "base model (default). When set, --lora_r/alpha/dropout are inherited "
+                        "from the loaded adapter and ignored.")
     return p.parse_args()
+
+
+# ----------------------------------------------------------------------------
+# Architecture handling (A100 vs GH200) — see README_GH200_SETUP.md
+# ----------------------------------------------------------------------------
+def resolve_arch(choice):
+    """Map --arch (auto|a100|gh200) to a concrete arch via compute capability."""
+    if choice != "auto":
+        return choice
+    if torch.cuda.is_available():
+        major = torch.cuda.get_device_capability(0)[0]
+        return "gh200" if major == 9 else "a100"   # 9.x = Hopper (GH200/H100)
+    return "a100"
+
+
+def attention_context(arch):
+    """Attention backend per architecture.
+
+    GH200 (sm_90, aarch64) ships no flash-attn/xformers, so Unsloth's SDPA falls
+    back to the MATH backend; combined with padding-free masks + Qwen2.5 GQA that
+    materializes the full N×N scores (~62 GB at micro_batch=8 -> OOM). Only cuDNN
+    handles mask+GQA fused (~2.4 GB), and PyTorch's default priority reaches MATH
+    before cuDNN, so we pin cuDNN FIRST with set_priority=True. A100 (sm_80) uses
+    its stock flash/SDPA path and needs no pin.
+    """
+    import contextlib
+    if arch == "gh200":
+        from torch.nn.attention import sdpa_kernel, SDPBackend
+        return sdpa_kernel([SDPBackend.CUDNN_ATTENTION, SDPBackend.FLASH_ATTENTION,
+                            SDPBackend.EFFICIENT_ATTENTION, SDPBackend.MATH],
+                           set_priority=True)
+    return contextlib.nullcontext()
 
 
 def main():
     args = parse_args()
+    ARCH = resolve_arch(args.arch)
+    _cap = torch.cuda.get_device_capability(0) if torch.cuda.is_available() else "cpu"
+    print(f"🖥️  architecture: {ARCH}  (--arch {args.arch}; device capability {_cap})")
 
     HYPERPARAMS = {
         "learning_rate": args.learning_rate,
@@ -89,6 +135,8 @@ def main():
         "run_name": args.run_name,
         "train_csv": args.train_csv,
         "val_csv": args.val_csv,
+        "arch": ARCH,
+        "init_adapter": args.init_adapter or None,
         "method": "lora",
         "quantization": "16bit",
         "run_id": args.run_name,
@@ -111,25 +159,40 @@ def main():
         json.dump(EXPERIMENT_CONFIG, f, indent=2)
 
     # --- Model ---------------------------------------------------------------
-    model, tokenizer = FastLanguageModel.from_pretrained(
-        model_name=f"unsloth/{args.base_model}",
-        max_seq_length=HYPERPARAMS["max_seq_length"],
-        dtype=None,
-        load_in_4bit=HYPERPARAMS["load_in_4bit"],
-    )
-    model = FastLanguageModel.get_peft_model(
-        model,
-        r=HYPERPARAMS["lora_r"],
-        target_modules=["q_proj", "k_proj", "v_proj", "o_proj",
-                        "gate_proj", "up_proj", "down_proj"],
-        lora_alpha=HYPERPARAMS["lora_alpha"],
-        lora_dropout=HYPERPARAMS["lora_dropout"],
-        bias="none",
-        use_gradient_checkpointing="unsloth",
-        random_state=args.seed,
-        use_rslora=False,
-        loftq_config=None,
-    )
+    if args.init_adapter:
+        # CONTINUE training an existing LoRA adapter (curriculum phase 2 /
+        # continued-SFT). Unsloth loads base+adapter as a trainable PEFT model
+        # from the adapter dir (adapter_config.json -> base_model_name_or_path),
+        # so the SAME LoRA weights carry forward — this is what makes the
+        # forgetting probe meaningful. We must NOT call get_peft_model again.
+        print(f"🔁 Continuing from existing adapter: {args.init_adapter}")
+        model, tokenizer = FastLanguageModel.from_pretrained(
+            model_name=args.init_adapter,
+            max_seq_length=HYPERPARAMS["max_seq_length"],
+            dtype=None,
+            load_in_4bit=HYPERPARAMS["load_in_4bit"],
+        )
+        FastLanguageModel.for_training(model)
+    else:
+        model, tokenizer = FastLanguageModel.from_pretrained(
+            model_name=f"unsloth/{args.base_model}",
+            max_seq_length=HYPERPARAMS["max_seq_length"],
+            dtype=None,
+            load_in_4bit=HYPERPARAMS["load_in_4bit"],
+        )
+        model = FastLanguageModel.get_peft_model(
+            model,
+            r=HYPERPARAMS["lora_r"],
+            target_modules=["q_proj", "k_proj", "v_proj", "o_proj",
+                            "gate_proj", "up_proj", "down_proj"],
+            lora_alpha=HYPERPARAMS["lora_alpha"],
+            lora_dropout=HYPERPARAMS["lora_dropout"],
+            bias="none",
+            use_gradient_checkpointing="unsloth",
+            random_state=args.seed,
+            use_rslora=False,
+            loftq_config=None,
+        )
 
     # Tokenizer for formatting (stock Qwen chat template — matches inference)
     tokenizer = AutoTokenizer.from_pretrained(f"Qwen/{args.base_model}")
@@ -246,7 +309,10 @@ def main():
         if ckpts:
             resume_ckpt = str(ckpts[0])
             print(f"Resuming from {resume_ckpt}")
-        trainer_stats = trainer.train(resume_from_checkpoint=resume_ckpt) if resume_ckpt else trainer.train()
+        # Attention backend is chosen by architecture (see attention_context):
+        # GH200 pins cuDNN SDPA to avoid the MATH-backend OOM; A100 is a no-op.
+        with attention_context(ARCH):
+            trainer_stats = trainer.train(resume_from_checkpoint=resume_ckpt) if resume_ckpt else trainer.train()
 
         metrics = getattr(trainer_stats, "metrics", {}) or {}
         with open(EXPERIMENT_DIR / "training_stats.json", "w") as f:

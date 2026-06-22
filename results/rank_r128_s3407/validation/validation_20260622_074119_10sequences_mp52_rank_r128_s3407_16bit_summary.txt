@@ -1,0 +1,13 @@
+Validation Summary for generated/rank_r128_s3407/generated_cifs_rank_r128_s3407_10seq_maxtok3072_0_8095.csv
+Generated on: 2026-06-22 09:01:36
+Total samples: 8096
+Success rate: 33.4%
+
+================================================================================
+RMSE PANEL (StructureMatcher RMS, Å)
+================================================================================
+Strict matched RMS  (n=18078): mean=0.130  median=0.042  std=0.160  min=0.000  max=0.500
+Near-miss RMS (all valid gens, n=52561): mean=0.468  median=0.564  std=0.283
+  bins:  <0.5: 21973   0.5-1.0: 30455   1.0-1.5: 133   >=1.5: 0
+
+Detailed statistics saved in: experiments/rank_r128_s3407/validation_20260622_074119_mp52_16bit_10sequences_mp52_rank_r128_s3407/validation_20260622_074119_10sequences_mp52_rank_r128_s3407_16bit.csv

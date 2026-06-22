@@ -107,7 +107,7 @@ def main() -> None:
     llm = LLM(
         model=base_model,
         enable_lora=True,
-        max_lora_rank=64,                 # >= adapter r (32); safe headroom
+        max_lora_rank=128,                # MUST be >= adapter r; 128 covers the rank sweep (r<=128)
         max_model_len=args.max_model_len,
         dtype="bfloat16",
         gpu_memory_utilization=args.gpu_mem_util,

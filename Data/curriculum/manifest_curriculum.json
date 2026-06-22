@@ -1,0 +1,62 @@
+{
+  "params": {
+    "total_step_budget_S": 4500,
+    "effective_batch": 32,
+    "master_seed": 3407,
+    "total_val_each": 4000,
+    "test_frozen_mp20_n": 1000
+  },
+  "split_disjointness_checks": {
+    "mp52_train_x_test": 0,
+    "mp52_train_x_val": 0,
+    "mp20_train_x_val": 0,
+    "mp20_train_x_test": 0
+  },
+  "leakage_filter": {
+    "mpts52_eval_ids": 13096,
+    "mp20_train_dropped": 2982,
+    "mp20_train_usable": 24154,
+    "mp20_val_dropped": 981,
+    "mp20_val_usable": 8066,
+    "mp20_test_dropped_in_mp52_train": 2913
+  },
+  "union": {
+    "n_mp20_phase": 24154,
+    "n_mp52_phase": 27380,
+    "n_union_mixed": 51534,
+    "note": "leakage-safe union; not cross-pool deduped (same multiset as the two phases)",
+    "token_proxy_mixed": {
+      "median_chars": 1298.0,
+      "mean_chars": 1437.7270927931074,
+      "p95_chars": 2791.3499999999985,
+      "max_chars": 3531
+    }
+  },
+  "step_split_suggested": {
+    "S": 4500,
+    "forward": {
+      "phase1_mp20_steps": 2109,
+      "phase2_mp52_steps": 2391
+    },
+    "reverse": {
+      "phase1_mp52_steps": 2391,
+      "phase2_mp20_steps": 2109
+    },
+    "rule": "proportional to phase crystal count; phases sum to S. S=4500 matches the composition sweep (run_composition_sweep.sh / README) so curriculum runs are comparable to the committed composition results. run_curriculum_sweep.sh recomputes these from union.n_mp20_phase/n_mp52_phase at MAX_STEPS (default 4500), so this block is informational."
+  },
+  "frozen_test": {
+    "mpts52": "(missing \u2014 run build_composition_datasets.py)",
+    "mpts52_ids_hash": null,
+    "mp20_forgetting": "Data/curriculum/test_frozen_mp20_1000.csv",
+    "mp20_forgetting_ids_hash": "80ca6e898a6776b8"
+  },
+  "files": {
+    "train_mixed": "Data/curriculum/train_mixed.csv",
+    "train_phase_mp20": "Data/curriculum/train_phase_mp20.csv",
+    "train_phase_mp52": "Data/curriculum/train_phase_mp52.csv",
+    "val_mixed": "Data/curriculum/val_mixed.csv",
+    "val_mp20": "Data/curriculum/val_mp20.csv",
+    "val_mp52": "Data/curriculum/val_mp52.csv",
+    "test_frozen_mp20_1000": "Data/curriculum/test_frozen_mp20_1000.csv"
+  }
+}

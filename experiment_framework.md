@@ -18,8 +18,11 @@ Pipeline implemented and verified end-to-end (dataset build → SFT train → vL
 | **Composition** | 100:0 | ✅ done | **26.6%** |
 | → *finding* | composition sweep COMPLETE | ✅ | match ↓ monotonically as MP-20 ↑ at matched volume/steps → gain was **volume, not composition** |
 | Volume control (#2) | combined-54k vs oversampled-MPTS | ⬜ not started | – |
-| LoRA rank (#3) | r ∈ {16,32,64,128} | ⬜ not started | – |
-| Curriculum (#4–5) | mixed vs fwd/rev + forgetting | ⬜ not started | – |
+| **LoRA rank (#3)** | r=16/32/64/128 seed 3407 (0.53/1.05/2.08/4.07% params) | ⏳ seed 3407 done, 1234 running | **28.1 / 29.9 / 31.3 / 33.4%** |
+| → *finding* | rank curve rises monotonically, no plateau (+1.4–2.1pp per doubling) | ⏳ | rank is **not** the weakest lever up to ~4% params |
+| **Curriculum (#4)** | forward (MP-20→MPTS-52) @ S=4500 | ✅ done | **30.7%** |
+| **Curriculum (#5)** | reverse (MPTS-52→MP-20) @ S=4500 | ✅ done | **27.5%** |
+| → *forgetting* | MP-20: fwd 65.7→60.4 (−5.3) · rev 53.5→69.8 (+16.3) | ✅ | recency-dominated (best at last-trained set) |
 | GRPO (#6–9) | best-of-N, RAFT, cont-SFT, KL sweep | ⬜ not started | – |
 
 Legend: ✅ done · ⏳ in progress · ⬜ pending. See §5 for the full run table.
@@ -122,6 +125,17 @@ These are the controls that turn "we got a higher number" into "we proved why."
 - **Proves:** the *shape* of the rank→accuracy curve and whether the +1.2% (32→64) clears the seed band. Brackets the claim "more parameters is the weakest lever" with a curve instead of a single point.
 - **Gotchas:** keep dropout, LR, sequence length fixed; only rank/α change.
 
+**Trainable parameters per rank** (Qwen2.5-7B + LoRA on q,k,v,o,gate,up,down; % = trainable / (base 7.62B + LoRA), as Unsloth reports). Use this to read the rank axis as "fraction of the model optimized" — it doubles with r:
+
+| LoRA rank | α (=2r) | Trainable params | % of model optimized |
+|---:|---:|---:|---:|
+| 16 | 32 | 40,370,176 | 0.53% |
+| 32 | 64 | 80,740,352 | 1.05% |
+| 64 | 128 | 161,480,704 | 2.08% |
+| 128 | 256 | 322,961,408 | 4.07% |
+
+**Result (seed 3407, MPTS-52 best-of-10):** r16 28.1% · r32 29.9% · r64 31.3% · r128 33.4% — monotonic, no plateau; +1.4–2.1 pp per doubling. (seed 1234 running for the error band.)
+
 ---
 
 ### 4.3 Curriculum (Schedule)
@@ -133,10 +147,12 @@ These are the controls that turn "we got a higher number" into "we proved why."
 | **Hold fixed** | Same crystal pool as the mixed run, same **total** steps, same per-crystal exposure, same eval split. |
 | **Change** | Only the **order** (interleaved vs. sequential). |
 
-**Design — matched-budget schedule comparison** (on the full 54,516-crystal union, to map to the paper's headline):
-- **Mixed (reference):** union, shuffled, `S` steps (e.g., S = 5,170 ≈ 3 epochs at eff-batch 32).
-- **Curriculum-forward:** MP-20 then MPTS-52, with `S₁ + S₂ = S`. Split by data size → since pools are ~equal, **S₁ ≈ S₂ ≈ S/2** (≈ 2,544 + 2,567 ≈ 5,111). **Disable early stopping**; pin `max_steps`.
-- **Curriculum-reverse:** MPTS-52 then MP-20 (same budget).
+**Design — matched-budget schedule comparison** (on the leakage-safe MP-20 + MPTS-52 union, graded on the same held-out MPTS-52 crystals as the composition sweep):
+- **Budget `S` = 4,500** — chosen to MATCH the composition sweep (`run_composition_sweep.sh`, `--max_steps 4500`) so curriculum runs are directly comparable to the committed composition results. (The paper's combined run used 5,170 and its curriculum drifted to 7,156; we pin to our own 4,500 instead. Override with `MAX_STEPS`.)
+- **Mixed (reference):** union, shuffled, `S` steps. Opt-in only here — the composition sweep already trains the shuffled union, so the curriculum sweep defaults to `forward reverse`.
+- **Curriculum-forward:** MP-20 then MPTS-52, with `S₁ + S₂ = S`. Split proportional to pool crystal count (MP-20 = 24,154 / MPTS-52 = 27,380) → **2,109 + 2,391 = 4,500**. **Disable early stopping**; pin `max_steps`.
+- **Curriculum-reverse:** MPTS-52 then MP-20, same per-pool step counts (**2,391 + 2,109**).
+- **Result:** forward 30.7% vs reverse 27.5% on MPTS-52 (+3.2 pp for ending on the eval set); forgetting probe MP-20 fwd 65.7→60.4 (−5.3), rev 53.5→69.8 (+16.3) → **recency dominates**.
 - **Forgetting probe:** grade MP-20 accuracy *before and after* the second phase.
 
 - **Proves:** mixed vs. forward at matched budget = pure **order** effect. Forward vs. reverse = is it "easy-to-hard" or just **recency** (whatever was trained last)? Forgetting probe = how much sequential training overwrites; mixed is the no-forgetting reference.

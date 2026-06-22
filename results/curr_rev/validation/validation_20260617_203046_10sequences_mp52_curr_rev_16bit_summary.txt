@@ -1,0 +1,13 @@
+Validation Summary for generated/curr_rev/generated_cifs_curr_rev_10seq_maxtok3072_0_8095.csv
+Generated on: 2026-06-17 21:25:52
+Total samples: 8096
+Success rate: 27.5%
+
+================================================================================
+RMSE PANEL (StructureMatcher RMS, Å)
+================================================================================
+Strict matched RMS  (n=14530): mean=0.126  median=0.044  std=0.158  min=0.000  max=0.500
+Near-miss RMS (all valid gens, n=36694): mean=0.422  median=0.507  std=0.279
+  bins:  <0.5: 17986   0.5-1.0: 18620   1.0-1.5: 88   >=1.5: 0
+
+Detailed statistics saved in: experiments/curr_rev/validation_20260617_203046_mp52_16bit_10sequences_mp52_curr_rev/validation_20260617_203046_10sequences_mp52_curr_rev_16bit.csv
