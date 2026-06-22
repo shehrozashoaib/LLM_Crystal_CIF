@@ -118,10 +118,10 @@ match metric hid.
 (split ∝ pool size: forward 2109+2391, reverse 2391+2109), graded on the same 8,096 MPTS-52 crystals.
 Conditions `forward`/`reverse` (mixed is the composition sweep's shuffled union).
 
-| Condition | MPTS-52 best-of-10 | MP-20 after phase-1 | MP-20 after phase-2 | MP-20 Δ |
-|---|---:|---:|---:|---:|
-| **Forward** (MP-20 → MPTS-52) | **30.7%** | 65.7% (peak) | 60.4% | **−5.3 pp** (forgetting) |
-| **Reverse** (MPTS-52 → MP-20) | **27.5%** | 53.5% (MPTS-52-only) | 69.8% | **+16.3 pp** (recency) |
+| Condition | MPTS-52 best-of-10 | MPTS-52 strict-RMS (med Å) | MP-20 after phase-1 | MP-20 after phase-2 | MP-20 Δ |
+|---|---:|---:|---:|---:|---:|
+| **Forward** (MP-20 → MPTS-52) | **30.7%** | 0.049 | 65.7% (peak) | 60.4% | **−5.3 pp** (forgetting) |
+| **Reverse** (MPTS-52 → MP-20) | **27.5%** | 0.044 | 53.5% (MPTS-52-only) | 69.8% | **+16.3 pp** (recency) |
 
 **Key finding — recency dominates:** each order is best at whatever it trained *last*. Forward ends on
 the eval distribution and wins MPTS-52 by **+3.2 pp**; reverse ends on MP-20 and reaches the highest
@@ -130,17 +130,18 @@ MP-20 accuracy (69.8%). Sequential MPTS-52 training costs only ~5 pp of MP-20 (m
 **LoRA rank sweep — seed 3407 done (seed 1234 running).** Pure MPTS-52, matched 4,500 steps, α=2r;
 only rank changes. The % is the fraction of the model optimized (trainable / (base 7.62B + LoRA)):
 
-| LoRA rank | % params optimized | MPTS-52 best-of-10 (seed 3407) |
-|---:|---:|---:|
-| r=16 | 0.53% | 28.1% |
-| r=32 | 1.05% | 29.9% |
-| r=64 | 2.08% | 31.3% |
-| r=128 | 4.07% | **33.4%** |
+| LoRA rank | % params optimized | MPTS-52 best-of-10 (seed 3407) | strict-RMS (med Å) |
+|---:|---:|---:|---:|
+| r=16 | 0.53% | 28.1% | 0.053 |
+| r=32 | 1.05% | 29.9% | 0.050 |
+| r=64 | 2.08% | 31.3% | 0.049 |
+| r=128 | 4.07% | **33.4%** | **0.042** |
 
 **Key finding — no plateau:** match rises monotonically with rank (each doubling +1.4–2.1 pp, biggest
 jump at 64→128). Going 0.53% → 4.07% of params buys +5.3 pp and is still climbing — so rank is *not*
-the "weakest lever" the paper claimed, at least up to ~4% of params. Seed 1234 adds the error band.
-(All prior composition/curriculum runs sit at the **r=32 ≈ 1%** point.)
+the "weakest lever" the paper claimed, at least up to ~4% of params. Matches also get **tighter** with
+rank (strict-RMS 0.053→0.042 Å). Seed 1234 adds the error band. (All prior composition/curriculum runs
+sit at the **r=32 ≈ 1%** point; r=32 here = 0.050 Å matches `comp_mp20_00`, a consistency check.)
 
 > **Hardware note.** All results above were produced on an **NVIDIA GH200 (Hopper sm_90, aarch64)**.
 > That architecture needs a specific attention-backend fix to train without OOM — if you are running on

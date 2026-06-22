@@ -134,7 +134,7 @@ These are the controls that turn "we got a higher number" into "we proved why."
 | 64 | 128 | 161,480,704 | 2.08% |
 | 128 | 256 | 322,961,408 | 4.07% |
 
-**Result (seed 3407, MPTS-52 best-of-10):** r16 28.1% · r32 29.9% · r64 31.3% · r128 33.4% — monotonic, no plateau; +1.4–2.1 pp per doubling. (seed 1234 running for the error band.)
+**Result (seed 3407, MPTS-52 best-of-10 / strict-RMS median Å):** r16 28.1% / 0.053 · r32 29.9% / 0.050 · r64 31.3% / 0.049 · r128 33.4% / 0.042 — match monotonic with no plateau (+1.4–2.1 pp per doubling), and matches tighten with rank (0.053→0.042 Å). (seed 1234 running for the error band.)
 
 ---
 
