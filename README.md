@@ -127,21 +127,22 @@ Conditions `forward`/`reverse` (mixed is the composition sweep's shuffled union)
 the eval distribution and wins MPTS-52 by **+3.2 pp**; reverse ends on MP-20 and reaches the highest
 MP-20 accuracy (69.8%). Sequential MPTS-52 training costs only ~5 pp of MP-20 (modest forgetting).
 
-**LoRA rank sweep — seed 3407 done (seed 1234 running).** Pure MPTS-52, matched 4,500 steps, α=2r;
-only rank changes. The % is the fraction of the model optimized (trainable / (base 7.62B + LoRA)):
+**LoRA rank sweep — COMPLETE (2 seeds).** Pure MPTS-52, matched 4,500 steps, α=2r; only rank
+changes. The % is the fraction of the model optimized (trainable / (base 7.62B + LoRA)):
 
-| LoRA rank | % params optimized | MPTS-52 best-of-10 (seed 3407) | strict-RMS (med Å) |
+| LoRA rank | % params optimized | best-of-10 (s3407 / s1234 / **mean**) | strict-RMS (med Å) |
 |---:|---:|---:|---:|
-| r=16 | 0.53% | 28.1% | 0.053 |
-| r=32 | 1.05% | 29.9% | 0.050 |
-| r=64 | 2.08% | 31.3% | 0.049 |
-| r=128 | 4.07% | **33.4%** | **0.042** |
+| r=16 | 0.53% | 28.1 / 28.5 / **28.3%** | 0.053 |
+| r=32 | 1.05% | 29.9 / 30.2 / **30.0%** | 0.050 |
+| r=64 | 2.08% | 31.3 / 31.3 / **31.3%** | 0.048 |
+| r=128 | 4.07% | 33.4 / 33.9 / **33.6%** | **0.043** |
 
-**Key finding — no plateau:** match rises monotonically with rank (each doubling +1.4–2.1 pp, biggest
-jump at 64→128). Going 0.53% → 4.07% of params buys +5.3 pp and is still climbing — so rank is *not*
-the "weakest lever" the paper claimed, at least up to ~4% of params. Matches also get **tighter** with
-rank (strict-RMS 0.053→0.042 Å). Seed 1234 adds the error band. (All prior composition/curriculum runs
-sit at the **r=32 ≈ 1%** point; r=32 here = 0.050 Å matches `comp_mp20_00`, a consistency check.)
+**Key finding — no plateau, and it's real.** Match rises monotonically with rank (+1.3–2.3 pp per
+doubling, biggest jump at 64→128). Going 0.53% → 4.07% of params buys **+5.3 pp** and is still climbing
+— so rank is *not* the "weakest lever" the paper claimed, at least up to ~4% of params. The **seed
+spread is only 0.0–0.5 pp**, far below the inter-rank gaps, so the ordering is not seed noise. Matches
+also get **tighter** with rank (strict-RMS 0.053→0.043 Å). (All prior composition/curriculum runs sit at
+the **r=32 ≈ 1%** point; r=32 here = 0.050 Å matches `comp_mp20_00`, a consistency check.)
 
 > **Hardware note.** All results above were produced on an **NVIDIA GH200 (Hopper sm_90, aarch64)**.
 > That architecture needs a specific attention-backend fix to train without OOM — if you are running on

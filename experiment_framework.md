@@ -18,8 +18,8 @@ Pipeline implemented and verified end-to-end (dataset build → SFT train → vL
 | **Composition** | 100:0 | ✅ done | **26.6%** |
 | → *finding* | composition sweep COMPLETE | ✅ | match ↓ monotonically as MP-20 ↑ at matched volume/steps → gain was **volume, not composition** |
 | Volume control (#2) | combined-54k vs oversampled-MPTS | ⬜ not started | – |
-| **LoRA rank (#3)** | r=16/32/64/128 seed 3407 (0.53/1.05/2.08/4.07% params) | ⏳ seed 3407 done, 1234 running | **28.1 / 29.9 / 31.3 / 33.4%** |
-| → *finding* | rank curve rises monotonically, no plateau (+1.4–2.1pp per doubling) | ⏳ | rank is **not** the weakest lever up to ~4% params |
+| **LoRA rank (#3)** | r=16/32/64/128 × 2 seeds (0.53/1.05/2.08/4.07% params) | ✅ done | **28.3 / 30.0 / 31.3 / 33.6%** (mean) |
+| → *finding* | monotonic, no plateau (+1.3–2.3pp/doubling); seed spread ≤0.5pp | ✅ | rank is **not** the weakest lever up to ~4% params |
 | **Curriculum (#4)** | forward (MP-20→MPTS-52) @ S=4500 | ✅ done | **30.7%** |
 | **Curriculum (#5)** | reverse (MPTS-52→MP-20) @ S=4500 | ✅ done | **27.5%** |
 | → *forgetting* | MP-20: fwd 65.7→60.4 (−5.3) · rev 53.5→69.8 (+16.3) | ✅ | recency-dominated (best at last-trained set) |
@@ -134,7 +134,7 @@ These are the controls that turn "we got a higher number" into "we proved why."
 | 64 | 128 | 161,480,704 | 2.08% |
 | 128 | 256 | 322,961,408 | 4.07% |
 
-**Result (seed 3407, MPTS-52 best-of-10 / strict-RMS median Å):** r16 28.1% / 0.053 · r32 29.9% / 0.050 · r64 31.3% / 0.049 · r128 33.4% / 0.042 — match monotonic with no plateau (+1.4–2.1 pp per doubling), and matches tighten with rank (0.053→0.042 Å). (seed 1234 running for the error band.)
+**Result (2-seed mean, MPTS-52 best-of-10 / strict-RMS median Å):** r16 28.3% / 0.053 · r32 30.0% / 0.050 · r64 31.3% / 0.048 · r128 33.6% / 0.043 — monotonic, no plateau (+1.3–2.3 pp per doubling), matches tighten with rank, seed spread ≤0.5 pp (so the ordering is real, not noise). Per-seed: r16 28.1/28.5 · r32 29.9/30.2 · r64 31.3/31.3 · r128 33.4/33.9.
 
 ---
 
