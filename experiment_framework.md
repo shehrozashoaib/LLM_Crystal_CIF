@@ -158,6 +158,35 @@ These are the controls that turn "we got a higher number" into "we proved why."
 - **Proves:** mixed vs. forward at matched budget = pure **order** effect. Forward vs. reverse = is it "easy-to-hard" or just **recency** (whatever was trained last)? Forgetting probe = how much sequential training overwrites; mixed is the no-forgetting reference.
 - **Key narrative:** forward ends *on the eval distribution* (an advantage), yet combined still wins on *fewer* steps — strong once budgets are matched.
 
+#### 4.3.1 Phase-split / target-emphasis sweep ⬜ proposed (not started)
+
+**Motivation.** Recency dominated (§4.3): forward beats reverse *because* it ends on MPTS-52. Natural
+follow-up — if ending on the target helps, does spending **more** of the budget on MPTS-52 help more?
+The original forward used a ~proportional split (MP-20 2109 + MPTS-52 2391 ≈ 47:53). This sweep treats
+the **switch point** as the lever.
+
+**Design.** Fix the total budget at **4,500 steps** and vary only **where MP-20 → MPTS-52 switches**:
+fork a single shared MP-20 base run at `k ∈ {0, 1000, 1500, 2000, 2500, 3000, 4500}` and train MPTS-52
+for the remaining `4500−k` steps. This interpolates the two endpoints we already have:
+`k=0` → pure MPTS-52 = **30.1%** (composition baseline); `k=4500` → pure MP-20 ≈ **26.6%**; the
+forward run (`k≈2109`) = **30.7%**. The curve maps whether any non-proportional split beats both.
+
+**Controls (one variable at a time).**
+- **Hold the pools fixed; vary only `k`.** Do **not** also change dataset sizes in the same sweep —
+  that conflates *target emphasis* with *composition*, and composition (MP-20:MPTS-52 ratio at fixed
+  24k volume) is already its own completed sweep. A dataset-size variant is a separate experiment.
+- Proportional-to-pool-size (the §4.3 forward run) stays the **reference**; this sweep *deliberately*
+  breaks proportionality as its independent variable.
+
+**Efficiency.** One MP-20 base run to ~3,000 steps with **all checkpoints kept** (`save_total_limit`
+unbounded), then each `k` is a cheap MPTS-52 continuation via `--init_adapter` from checkpoint-`k`.
+(NB: the existing `curr_fwd_p1` only retained checkpoints 1755/2106/2109 — auto-pruned — so a fresh
+MP-20 base run is needed to get clean low-`k` fork points.)
+
+**Proves.** The *shape* of accuracy vs. target-emphasis at matched budget — i.e. whether "pretrain on
+MP-20, then anneal hard onto MPTS-52" has a sweet spot that beats pure-MPTS-52 SFT, or whether forward's
++0.6 pp over baseline is the most order/emphasis can buy.
+
 ---
 
 ### 4.4 GRPO (Reinforcement Learning)
