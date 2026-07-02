@@ -1,0 +1,13 @@
+Validation Summary for generated/psplit_k3000/generated_cifs_psplit_k3000_10seq_maxtok3072_0_8095.csv
+Generated on: 2026-07-01 11:53:50
+Total samples: 8096
+Success rate: 29.9%
+
+================================================================================
+RMSE PANEL (StructureMatcher RMS, Å)
+================================================================================
+Strict matched RMS  (n=14806): mean=0.144  median=0.054  std=0.165  min=0.000  max=0.500
+Near-miss RMS (all valid gens, n=47707): mean=0.491  median=0.583  std=0.273
+  bins:  <0.5: 18475   0.5-1.0: 29107   1.0-1.5: 125   >=1.5: 0
+
+Detailed statistics saved in: experiments/psplit_k3000/validation_20260701_103444_mp52_16bit_10sequences_mp52_psplit_k3000/validation_20260701_103444_10sequences_mp52_psplit_k3000_16bit.csv

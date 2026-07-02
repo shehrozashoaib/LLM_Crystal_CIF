@@ -23,7 +23,11 @@ Pipeline implemented and verified end-to-end (dataset build → SFT train → vL
 | **Curriculum (#4)** | forward (MP-20→MPTS-52) @ S=4500 | ✅ done | **30.7%** |
 | **Curriculum (#5)** | reverse (MPTS-52→MP-20) @ S=4500 | ✅ done | **27.5%** |
 | → *forgetting* | MP-20: fwd 65.7→60.4 (−5.3) · rev 53.5→69.8 (+16.3) | ✅ | recency-dominated (best at last-trained set) |
-| GRPO (#6–9) | best-of-N, RAFT, cont-SFT, KL sweep | ⬜ not started | – |
+| **Curriculum (#4.3.1)** | phase-split k=0/1000/2109/3000/4500 (switch point) | ✅ done | 30.1 / **32.1** / 30.7 / 29.9 / 26.6% |
+| → *finding* | peak at short warmup k=1000; data-matched 2:7 = 31.2% (< k=1000) | ✅ | **light warmup helps, a lot hurts; emphasis via steps, keep pool full** |
+| **GRPO (#6/#8)** | discrete reward, fork ckpt-3000, vs continued-SFT @ matched compute | ✅ done | **27.7%** (SFT 29.9%) |
+| → *finding* | reward flat, signal live, KL≈0.25 — RL moved policy, no gradient | ✅ | **GRPO underperforms SFT; reproduces paper's null** (group/KL sweep skipped — non-bottleneck) |
+| GRPO (#7 RAFT, #9 sweep) | rejection-sampling-FT; hyperparam sweep | ⬜ not run | – |
 
 Legend: ✅ done · ⏳ in progress · ⬜ pending. See §5 for the full run table.
 
@@ -158,7 +162,16 @@ These are the controls that turn "we got a higher number" into "we proved why."
 - **Proves:** mixed vs. forward at matched budget = pure **order** effect. Forward vs. reverse = is it "easy-to-hard" or just **recency** (whatever was trained last)? Forgetting probe = how much sequential training overwrites; mixed is the no-forgetting reference.
 - **Key narrative:** forward ends *on the eval distribution* (an advantage), yet combined still wins on *fewer* steps — strong once budgets are matched.
 
-#### 4.3.1 Phase-split / target-emphasis sweep ⬜ proposed (not started)
+#### 4.3.1 Phase-split / target-emphasis sweep ✅ done
+
+**Result.** Switch point k = 0/1000/2109/3000/4500 → **30.1 / 32.1 / 30.7 / 29.9 / 26.6%**. The curve
+**peaks at a short warmup (k=1000 = 32.1%)** — best of any curriculum point (+2.0 pp over pure MPTS-52,
++1.4 pp over the proportional forward split); more warmup erodes it monotonically to pure-MP-20's 26.6%.
+A **data-matched** control (MP-20 pool subsampled 24k→7.8k so data ratio = step ratio 2:7) gave **31.2%
+< k=1000**, so the warmup benefit is from MP-20 crystal **diversity** (full pool, few steps), not
+repetition. Takeaway: *put target-emphasis in the steps, keep the warmup pool full — a little easy-domain
+warmup helps, a lot hurts.* (Design as proposed below.)
+
 
 **Motivation.** Recency dominated (§4.3): forward beats reverse *because* it ends on MPTS-52. Natural
 follow-up — if ending on the target helps, does spending **more** of the budget on MPTS-52 help more?
@@ -193,6 +206,7 @@ MP-20, then anneal hard onto MPTS-52" has a sweet spot that beats pure-MPTS-52 S
 
 | | |
 |---|---|
+| **Our result** ✅ | Discrete-reward GRPO forked from the r=32 SFT checkpoint-3000, 1,500 steps → 4,500 total. Full 8,096 test: **final 27.7% · best 27.9%** vs **continued-SFT 29.9%** at matched compute → **GRPO underperforms SFT by ~2 pp**. Diagnostics: train reward **flat** (~0.48), `frac_reward_zero_std=0` (live signal), KL≈0.25 (policy moved) → RL moved the policy but the objective yields no improvable gradient from a near-converged prior. Group-size/KL sweep skipped (targets non-bottlenecks); RAFT control not run. **Reproduces the paper's null.** |
 | **Paper finding** | GRPO on the r=32 SFT: per-gen 12.2 → 14.0–14.1; best-of-10 24.4 → 25.6–25.9 (marginal). Discrete ≈ continuous. Continuous reward ~25× denser signal but **held-out flat** (drift). |
 | **Reviewer concern** | Practical value of the whole approach unclear; this lever looks ineffective. |
 | **Problem** | The test wasn't built to decide it: **no GRPO seed variance measured**, only the weak prior tried, no RL-free baseline, only the binary best-of-10 metric. |

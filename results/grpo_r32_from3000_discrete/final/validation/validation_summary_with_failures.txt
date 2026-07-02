@@ -1,0 +1,22 @@
+Validation Summary
+Generated on: 2026-06-30 03:22:27.910436
+Total samples: 8096
+Success rate: 27.7%
+
+FAILURE ANALYSIS
+==================================================
+Complete failures: 5854/8096 (72.3%)
+
+Top 5 Failing Space Groups:
+  134: 100.0% (1.0/1.0)
+  41: 100.0% (3.0/3.0)
+  199: 100.0% (8.0/8.0)
+  102: 100.0% (4.0/4.0)
+  6: 100.0% (4.0/4.0)
+
+Most Problematic Compositions:
+  CaAl2SiO6: 7 failures
+  Ca(BH4)2: 6 failures
+  FeBiO3: 5 failures
+  Nb4Ag2O11: 4 failures
+  BaTiO3: 4 failures

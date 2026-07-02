@@ -1,0 +1,13 @@
+Validation Summary for generated/psplit_datamatch/generated_cifs_psplit_datamatch_10seq_maxtok3072_0_8095.csv
+Generated on: 2026-07-02 03:07:32
+Total samples: 8096
+Success rate: 31.2%
+
+================================================================================
+RMSE PANEL (StructureMatcher RMS, Å)
+================================================================================
+Strict matched RMS  (n=15594): mean=0.140  median=0.049  std=0.163  min=0.000  max=0.500
+Near-miss RMS (all valid gens, n=49131): mean=0.487  median=0.580  std=0.276
+  bins:  <0.5: 19202   0.5-1.0: 29779   1.0-1.5: 150   >=1.5: 0
+
+Detailed statistics saved in: experiments/psplit_datamatch/validation_20260702_014954_mp52_16bit_10sequences_mp52_psplit_datamatch/validation_20260702_014954_10sequences_mp52_psplit_datamatch_16bit.csv

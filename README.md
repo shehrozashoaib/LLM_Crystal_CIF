@@ -127,6 +127,39 @@ Conditions `forward`/`reverse` (mixed is the composition sweep's shuffled union)
 the eval distribution and wins MPTS-52 by **+3.2 pp**; reverse ends on MP-20 and reaches the highest
 MP-20 accuracy (69.8%). Sequential MPTS-52 training costs only ~5 pp of MP-20 (modest forgetting).
 
+**Curriculum phase-split (§4.3.1) — COMPLETE.** Fix the 4,500-step budget; vary the MP-20→MPTS-52
+switch point `k` (fork checkpoint-`k` of a shared MP-20 base, then MPTS-52 for the rest):
+
+| k (MP-20 steps → then MPTS-52) | split | best-of-10 | strict-RMS (Å) |
+|---:|---|---:|---:|
+| 0 (pure MPTS-52) | 0 + 4500 | 30.1% | 0.050 |
+| **1000** | **1000 + 3500** | **32.1%** ⭐ | 0.049 |
+| 2109 (forward) | 2109 + 2391 | 30.7% | 0.049 |
+| 3000 | 3000 + 1500 | 29.9% | 0.054 |
+| 4500 (pure MP-20) | 4500 + 0 | 26.6% | 0.039 |
+
+**Key finding — a little easy-domain warmup helps, a lot hurts.** The curve peaks at a **short MP-20
+warmup (k=1000) → 32.1%**, the best of any curriculum point — beating pure MPTS-52 (+2.0 pp) and the
+proportional forward split (+1.4 pp). More warmup erodes it monotonically to pure-MP-20's 26.6%.
+A **data-matched** control (MP-20 pool subsampled 24k→7.8k so data ratio = step ratio 2:7) scored
+**31.2%** — *below* k=1000 — so the warmup benefit comes from MP-20 crystal **diversity** (full pool,
+few steps), not repetition: put the target-emphasis in the *steps*, keep the warmup pool full.
+
+**GRPO (RL, §4.4) — COMPLETE: negative.** Discrete StructureMatcher reward, forked from the r=32
+SFT checkpoint-3000, 1,500 GRPO steps → 4,500 total (matched to continued-SFT). Full 8,096 test set:
+
+| model | best-of-10 | strict-RMS (Å) |
+|---|---:|---:|
+| GRPO final (step 1500) | 27.7% | 0.066 |
+| GRPO best (best-val) | 27.9% | 0.067 |
+| **continued-SFT** (same fork, 1500 SFT steps) | **29.9%** | 0.050 |
+
+**GRPO underperformed continued-SFT by ~2 pp at matched compute** — a clean negative that reproduces
+the paper's marginal GRPO finding. Diagnostics explain *why*: training reward stayed **flat** (~0.48
+throughout) with a live advantage signal (`frac_reward_zero_std=0`) and non-trivial policy movement
+(KL≈0.25) — i.e. RL moved the policy but the match-reward objective yielded no improvable gradient from
+a near-converged SFT prior. (So a group-size/KL sweep targets non-bottlenecks; not run.)
+
 **LoRA rank sweep — COMPLETE (2 seeds).** Pure MPTS-52, matched 4,500 steps, α=2r; only rank
 changes. The % is the fraction of the model optimized (trainable / (base 7.62B + LoRA)):
 

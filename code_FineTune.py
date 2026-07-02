@@ -61,6 +61,9 @@ def parse_args():
     p.add_argument("--weight_decay", type=float, default=0.01)
     p.add_argument("--base_model", default="Qwen2.5-7B-Instruct")
     p.add_argument("--seed", type=int, default=3407)
+    p.add_argument("--save_total_limit", type=int, default=3,
+                   help="max checkpoints to keep (HF Trainer). <=0 keeps ALL checkpoints "
+                        "(needed for the phase-split sweep, which forks intermediate checkpoints).")
     p.add_argument("--arch", choices=["auto", "a100", "gh200"], default="auto",
                    help="GPU architecture. Controls the attention backend: gh200 "
                         "(Hopper sm_90, aarch64) pins cuDNN SDPA to avoid the MATH-backend "
@@ -262,7 +265,7 @@ def main():
         output_dir=str(CHECKPOINTS_DIR),
         save_strategy="steps",
         save_steps=save_steps,
-        save_total_limit=3,
+        save_total_limit=(None if args.save_total_limit <= 0 else args.save_total_limit),
         per_device_train_batch_size=HYPERPARAMS["per_device_train_batch_size"],
         per_device_eval_batch_size=HYPERPARAMS["per_device_train_batch_size"],
         gradient_accumulation_steps=HYPERPARAMS["gradient_accumulation_steps"],
