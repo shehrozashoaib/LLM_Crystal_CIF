@@ -145,20 +145,24 @@ A **data-matched** control (MP-20 pool subsampled 24k→7.8k so data ratio = ste
 **31.2%** — *below* k=1000 — so the warmup benefit comes from MP-20 crystal **diversity** (full pool,
 few steps), not repetition: put the target-emphasis in the *steps*, keep the warmup pool full.
 
-**GRPO (RL, §4.4) — COMPLETE: negative.** Discrete StructureMatcher reward, forked from the r=32
-SFT checkpoint-3000, 1,500 GRPO steps → 4,500 total (matched to continued-SFT). Full 8,096 test set:
+**GRPO (RL, §4.4) — COMPLETE: negative.** Forked from the r=32 SFT checkpoint-3000, 1,500 GRPO steps →
+4,500 total (matched to continued-SFT). Full 8,096 test set, both reward shapes tried:
 
-| model | best-of-10 | strict-RMS (Å) |
-|---|---:|---:|
-| GRPO final (step 1500) | 27.7% | 0.066 |
-| GRPO best (best-val) | 27.9% | 0.067 |
-| **continued-SFT** (same fork, 1500 SFT steps) | **29.9%** | 0.050 |
+| model | reward | group | best-of-10 | strict-RMS (med Å) |
+|---|---|---:|---:|---:|
+| **continued-SFT** (baseline, same fork) | — | — | **29.9%** | **0.050** |
+| GRPO final | discrete | 4 | 27.7% | 0.066 |
+| GRPO best | discrete | 4 | 27.9% | 0.067 |
+| GRPO final | continuous | 8 | 28.1% | 0.063 |
+| GRPO best | continuous | 8 | 28.1% | 0.064 |
 
-**GRPO underperformed continued-SFT by ~2 pp at matched compute** — a clean negative that reproduces
-the paper's marginal GRPO finding. Diagnostics explain *why*: training reward stayed **flat** (~0.48
-throughout) with a live advantage signal (`frac_reward_zero_std=0`) and non-trivial policy movement
-(KL≈0.25) — i.e. RL moved the policy but the match-reward objective yielded no improvable gradient from
-a near-converged SFT prior. (So a group-size/KL sweep targets non-bottlenecks; not run.)
+**GRPO underperforms continued-SFT by ~2 pp at matched compute — regardless of reward shape (discrete
+vs continuous) or group size (4 vs 8).** A clean negative that reproduces the paper's marginal GRPO
+finding. Diagnostics explain *why*: training reward stayed **flat** across all 1,500 steps (discrete
+~0.48, continuous ~0.52) with a live advantage signal (`frac_reward_zero_std=0`) and non-trivial policy
+movement (KL≈0.25) — i.e. RL moved the policy but the match-reward objective yielded no improvable
+gradient from a near-converged SFT prior. The reward *shape* wasn't the bottleneck; the objective is.
+(Also note the GRPO RMS is *worse* — 0.063–0.067 vs SFT's 0.050 — so it didn't even tighten its matches.)
 
 **LoRA rank sweep — COMPLETE (2 seeds).** Pure MPTS-52, matched 4,500 steps, α=2r; only rank
 changes. The % is the fraction of the model optimized (trainable / (base 7.62B + LoRA)):

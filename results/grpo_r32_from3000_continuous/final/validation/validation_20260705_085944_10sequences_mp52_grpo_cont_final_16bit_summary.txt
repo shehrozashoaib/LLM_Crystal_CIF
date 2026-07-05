@@ -1,0 +1,13 @@
+Validation Summary for generated/grpo_cont_final/generated_cifs_grpo_r32_from3000_continuous_10seq_maxtok3072_0_8095.csv
+Generated on: 2026-07-05 10:18:30
+Total samples: 8096
+Success rate: 28.1%
+
+================================================================================
+RMSE PANEL (StructureMatcher RMS, Å)
+================================================================================
+Strict matched RMS  (n=13188): mean=0.156  median=0.063  std=0.169  min=0.000  max=0.500
+Near-miss RMS (all valid gens, n=46301): mean=0.509  median=0.594  std=0.265
+  bins:  <0.5: 16782   0.5-1.0: 29405   1.0-1.5: 114   >=1.5: 0
+
+Detailed statistics saved in: experiments/grpo_r32_from3000_continuous/eval_final/validation_20260705_085944_mp52_16bit_10sequences_mp52_grpo_cont_final/validation_20260705_085944_10sequences_mp52_grpo_cont_final_16bit.csv

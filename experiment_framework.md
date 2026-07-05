@@ -25,9 +25,9 @@ Pipeline implemented and verified end-to-end (dataset build → SFT train → vL
 | → *forgetting* | MP-20: fwd 65.7→60.4 (−5.3) · rev 53.5→69.8 (+16.3) | ✅ | recency-dominated (best at last-trained set) |
 | **Curriculum (#4.3.1)** | phase-split k=0/1000/2109/3000/4500 (switch point) | ✅ done | 30.1 / **32.1** / 30.7 / 29.9 / 26.6% |
 | → *finding* | peak at short warmup k=1000; data-matched 2:7 = 31.2% (< k=1000) | ✅ | **light warmup helps, a lot hurts; emphasis via steps, keep pool full** |
-| **GRPO (#6/#8)** | discrete reward, fork ckpt-3000, vs continued-SFT @ matched compute | ✅ done | **27.7%** (SFT 29.9%) |
-| → *finding* | reward flat, signal live, KL≈0.25 — RL moved policy, no gradient | ✅ | **GRPO underperforms SFT; reproduces paper's null** (group/KL sweep skipped — non-bottleneck) |
-| GRPO (#7 RAFT, #9 sweep) | rejection-sampling-FT; hyperparam sweep | ⬜ not run | – |
+| **GRPO (#6/#8)** | fork ckpt-3000 vs continued-SFT @ matched compute: discrete/g4 · continuous/g8 | ✅ done | **27.7–28.1%** (SFT 29.9%) |
+| → *finding* | reward flat both shapes, signal live, KL≈0.25 — RL moved policy, no gradient | ✅ | **GRPO < SFT ~2pp regardless of reward shape or group size; reproduces paper's null** |
+| GRPO (#7 RAFT, #9 sweep) | rejection-sampling-FT; further hyperparams | ⬜ not run | – |
 
 Legend: ✅ done · ⏳ in progress · ⬜ pending. See §5 for the full run table.
 
@@ -206,7 +206,7 @@ MP-20, then anneal hard onto MPTS-52" has a sweet spot that beats pure-MPTS-52 S
 
 | | |
 |---|---|
-| **Our result** ✅ | Discrete-reward GRPO forked from the r=32 SFT checkpoint-3000, 1,500 steps → 4,500 total. Full 8,096 test: **final 27.7% · best 27.9%** vs **continued-SFT 29.9%** at matched compute → **GRPO underperforms SFT by ~2 pp**. Diagnostics: train reward **flat** (~0.48), `frac_reward_zero_std=0` (live signal), KL≈0.25 (policy moved) → RL moved the policy but the objective yields no improvable gradient from a near-converged prior. Group-size/KL sweep skipped (targets non-bottlenecks); RAFT control not run. **Reproduces the paper's null.** |
+| **Our result** ✅ | GRPO forked from the r=32 SFT checkpoint-3000, 1,500 steps → 4,500 total, **both reward shapes** (full 8,096 test / strict-RMS med Å): discrete·g4 **final 27.7%/0.066 · best 27.9%/0.067**; continuous·g8 **final 28.1%/0.063 · best 28.1%/0.064**; vs **continued-SFT 29.9%/0.050** at matched compute → **GRPO underperforms SFT by ~2 pp regardless of reward shape or group size**, and its RMS is *worse* too. Diagnostics: train reward **flat** both shapes (discrete ~0.48, continuous ~0.52), `frac_reward_zero_std=0` (live signal), KL≈0.25 (policy moved) → RL moved the policy but the objective yields no improvable gradient from a near-converged prior. The reward *shape* wasn't the bottleneck. Group-size/KL sweep and RAFT not run. **Reproduces the paper's null, with mechanism.** |
 | **Paper finding** | GRPO on the r=32 SFT: per-gen 12.2 → 14.0–14.1; best-of-10 24.4 → 25.6–25.9 (marginal). Discrete ≈ continuous. Continuous reward ~25× denser signal but **held-out flat** (drift). |
 | **Reviewer concern** | Practical value of the whole approach unclear; this lever looks ineffective. |
 | **Problem** | The test wasn't built to decide it: **no GRPO seed variance measured**, only the weak prior tried, no RL-free baseline, only the binary best-of-10 metric. |
