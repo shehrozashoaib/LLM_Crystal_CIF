@@ -185,3 +185,13 @@ the **r=32 ≈ 1%** point; r=32 here = 0.050 Å matches `comp_mp20_00`, a consis
 > That architecture needs a specific attention-backend fix to train without OOM — if you are running on
 > GH200/aarch64, read **[`README_GH200_SETUP.md`](README_GH200_SETUP.md)** before installing/training.
 > `code_FineTune.py` selects the right path per architecture via `--arch {auto,a100,gh200}`.
+
+
+---
+
+## Authors
+
+- **Shehroz Ahmad Shoaib** — [shehrozashoaib@gmail.com](mailto:shehrozashoaib@gmail.com)
+- **Dr. Burhan SaifAddin** — [burhan.saifaddin@kfupm.edu.sa](mailto:burhan.saifaddin@kfupm.edu.sa)
+
+---
