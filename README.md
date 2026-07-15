@@ -141,7 +141,7 @@ switch point `k` (fork checkpoint-`k` of a shared MP-20 base, then MPTS-52 for t
 **Key finding — a little easy-domain warmup helps, a lot hurts.** The curve peaks at a **short MP-20
 warmup (k=1000) → 32.1%**, the best of any curriculum point — beating pure MPTS-52 (+2.0 pp) and the
 proportional forward split (+1.4 pp). More warmup erodes it monotonically to pure-MP-20's 26.6%.
-A **data-matched** control (MP-20 pool subsampled 24k→7.8k so data ratio = step ratio 2:7) scored
+A **data-matched** control (MP-20 pool subsampled so data ratio = step ratio 2:7) scored
 **31.2%** — *below* k=1000 — so the warmup benefit comes from MP-20 crystal **diversity** (full pool,
 few steps), not repetition: put the target-emphasis in the *steps*, keep the warmup pool full.
 
