@@ -1,5 +1,6 @@
 {
   "params": {
+    "total_train_budget": 24000,
     "total_step_budget_S": 4500,
     "effective_batch": 32,
     "master_seed": 3407,
@@ -21,16 +22,21 @@
     "mp20_test_dropped_in_mp52_train": 2913
   },
   "union": {
-    "n_mp20_phase": 24154,
-    "n_mp52_phase": 27380,
-    "n_union_mixed": 51534,
-    "note": "leakage-safe union; not cross-pool deduped (same multiset as the two phases)",
-    "token_proxy_mixed": {
-      "median_chars": 1298.0,
-      "mean_chars": 1437.7270927931074,
-      "p95_chars": 2791.3499999999985,
-      "max_chars": 3531
-    }
+    "budget_total": 24000,
+    "n_mp20_phase": 11249,
+    "n_mp52_phase": 12751,
+    "n_union_mixed": 24000,
+    "pool_ratio_mp20": 0.4687,
+    "leakage_safe_pools_available": {
+      "mp20": 24154,
+      "mp52": 27380
+    },
+    "note": "union CAPPED to 24k, subsampled proportional to leakage-safe pool sizes (46.9:53.1); same multiset as the two phases (mixed = shuffled concat of the two capped phases)"
+  },
+  "data_matched_control": {
+    "file": "train_phase_mp20_sub2of7.csv.gz",
+    "n_mp20_sub": 3643,
+    "rule": "2/7 of the capped MPTS-52 phase, so data ratio = step ratio 2:7"
   },
   "step_split_suggested": {
     "S": 4500,
@@ -42,21 +48,12 @@
       "phase1_mp52_steps": 2391,
       "phase2_mp20_steps": 2109
     },
-    "rule": "proportional to phase crystal count; phases sum to S. S=4500 matches the composition sweep (run_composition_sweep.sh / README) so curriculum runs are comparable to the committed composition results. run_curriculum_sweep.sh recomputes these from union.n_mp20_phase/n_mp52_phase at MAX_STEPS (default 4500), so this block is informational."
+    "rule": "proportional to capped phase crystal count; phases sum to S"
   },
   "frozen_test": {
-    "mpts52": "(missing \u2014 run build_composition_datasets.py)",
-    "mpts52_ids_hash": null,
-    "mp20_forgetting": "Data/curriculum/test_frozen_mp20_1000.csv",
+    "mpts52": "Data/composition_sweep/test_frozen_mp52_1000.csv.gz",
+    "mpts52_ids_hash": "6cf86534cecbfff6",
+    "mp20_forgetting": "Data/curriculum/test_frozen_mp20_1000.csv.gz",
     "mp20_forgetting_ids_hash": "80ca6e898a6776b8"
-  },
-  "files": {
-    "train_mixed": "Data/curriculum/train_mixed.csv",
-    "train_phase_mp20": "Data/curriculum/train_phase_mp20.csv",
-    "train_phase_mp52": "Data/curriculum/train_phase_mp52.csv",
-    "val_mixed": "Data/curriculum/val_mixed.csv",
-    "val_mp20": "Data/curriculum/val_mp20.csv",
-    "val_mp52": "Data/curriculum/val_mp52.csv",
-    "test_frozen_mp20_1000": "Data/curriculum/test_frozen_mp20_1000.csv"
   }
 }
