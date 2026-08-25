@@ -10,3 +10,9 @@ __pycache__/
 # scratch
 *.log
 .DS_Store
+
+# working dirs — curated copies live in results/
+experiments/
+generated/
+unsloth_compiled_cache/
+*.bak

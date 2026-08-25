@@ -35,8 +35,28 @@ import pandas as pd
 from unsloth import FastLanguageModel, is_bfloat16_supported
 from datasets import Dataset
 from trl import SFTTrainer, SFTConfig
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, TrainerCallback
 import wandb
+
+
+class ForceSaveCadence(TrainerCallback):
+    """Re-apply the CLI save/log cadence onto a resumed TrainerState.
+
+    transformers decides saves from `state.save_steps` (trainer_callback.py
+    DefaultFlowCallback), and `state` is restored verbatim from the checkpoint on
+    resume — so a checkpoint written under an old --save_steps silently pins the
+    cadence forever and a new --save_steps is ignored. On unstable hardware that
+    means every retry resumes from the same checkpoint and never advances.
+    """
+
+    def on_train_begin(self, args, state, control, **kwargs):
+        if state.save_steps != args.save_steps:
+            print(f"⏱️  save cadence: state had {state.save_steps} -> forcing {args.save_steps}")
+        state.save_steps = args.save_steps
+        state.logging_steps = args.logging_steps
+        if args.eval_steps:
+            state.eval_steps = args.eval_steps
+        return control
 
 
 # ----------------------------------------------------------------------------
@@ -61,6 +81,9 @@ def parse_args():
     p.add_argument("--weight_decay", type=float, default=0.01)
     p.add_argument("--base_model", default="Qwen2.5-7B-Instruct")
     p.add_argument("--seed", type=int, default=3407)
+    p.add_argument("--save_steps", type=int, default=0,
+                   help="checkpoint interval; 0 => max_steps//6 (the original default). "
+                        "Set smaller than the mean time-to-crash on unstable hardware.")
     p.add_argument("--save_total_limit", type=int, default=3,
                    help="max checkpoints to keep (HF Trainer). <=0 keeps ALL checkpoints "
                         "(needed for the phase-split sweep, which forks intermediate checkpoints).")
@@ -237,7 +260,10 @@ def main():
     # Warmup / save / eval cadence are derived from the PINNED step budget,
     # not from epochs, so they are identical regardless of dataset size.
     warmup_steps = int(args.max_steps * HYPERPARAMS["warmup_ratio"])
-    save_steps = max(args.max_steps // 6, 50)
+    # Default cadence is max_steps//6. --save_steps overrides it: on hardware that
+    # crashes mid-run, checkpoints must be closer together than the mean time to
+    # failure, or every retry resumes from the same checkpoint and never advances.
+    save_steps = args.save_steps if args.save_steps > 0 else max(args.max_steps // 6, 50)
 
     print("\n📈 Training configuration")
     print(f"  run_name           : {args.run_name}")
@@ -301,6 +327,7 @@ def main():
         eval_dataset=val_dataset,            # None when eval disabled
         # NO EarlyStoppingCallback — pinned-step training.
         args=training_args,
+        callbacks=[ForceSaveCadence()],
     )
 
     print("\n" + "=" * 80 + "\n🚀 STARTING TRAINING (pinned to %d steps)\n" % args.max_steps + "=" * 80)

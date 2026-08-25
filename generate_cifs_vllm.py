@@ -28,6 +28,7 @@ Example:
 from __future__ import annotations
 
 import argparse
+import sys
 import os
 from pathlib import Path
 
@@ -130,16 +131,36 @@ def main() -> None:
                    f"maxtok{args.max_new_tokens}_{args.start_ix}_{stop_ix - 1}.csv")
     output_path = Path(args.output_dir) / output_name
 
-    # ---- Generate in chunks, save incrementally ----
-    rows_out = []
+    # ---- Generate in chunks, save incrementally (RESUMABLE) ----
+    # Each chunk is written to its own shard file and the shards are concatenated
+    # at the end. A shard that already exists is skipped, so a crash/restart only
+    # loses the in-flight chunk instead of the whole run. This matters because the
+    # engine can die mid-run and the full pass takes many hours.
+    shard_dir = output_path.parent / (output_path.stem + "_shards")
+    shard_dir.mkdir(parents=True, exist_ok=True)
+
     truncated = 0
     total_gens = 0
+    shard_paths = []
     for c0 in range(0, len(sub), args.chunk):
         chunk = sub.iloc[c0:c0 + args.chunk]
+        shard = shard_dir / f"part_{c0:07d}.csv"
+        shard_paths.append((c0, shard, len(chunk)))
+        if shard.exists():
+            try:
+                got = len(pd.read_csv(shard))
+            except Exception:
+                got = -1
+            if got == len(chunk):
+                print(f"  [resume] shard {shard.name} complete ({got} rows) -> skip")
+                continue
+            print(f"  [resume] shard {shard.name} incomplete ({got}/{len(chunk)}) -> regenerate")
+
         prompts = [make_prompt_text(tokenizer, str(r["instruction"]),
                                     str(r["input"]) if pd.notna(r["input"]) else "")
                    for _, r in chunk.iterrows()]
         outputs = llm.generate(prompts, sampling, lora_request=lora_req)
+        rows_chunk = []
         for local_i, out in enumerate(outputs):
             row = chunk.iloc[local_i].to_dict()
             row["index"] = args.start_ix + c0 + local_i
@@ -148,12 +169,29 @@ def main() -> None:
                 total_gens += 1
                 if comp.finish_reason == "length":   # hit max_tokens, no EOS
                     truncated += 1
-            rows_out.append(row)
-        pd.DataFrame(rows_out).to_csv(output_path, index=False)
-        print(f"  saved {len(rows_out)}/{len(sub)} materials -> {output_path}")
+            rows_chunk.append(row)
+        tmp = shard.with_suffix(".csv.tmp")
+        pd.DataFrame(rows_chunk).to_csv(tmp, index=False)
+        os.replace(tmp, shard)          # atomic: a shard is never half-written
+        print(f"  saved shard {shard.name} ({len(rows_chunk)} rows)")
+
+    # ---- Assemble the final CSV from shards (in order) ----
+    frames = []
+    for c0, shard, expect in shard_paths:
+        if not shard.exists():
+            sys.exit(f"[FATAL] missing shard {shard} — refusing to write a partial output")
+        d = pd.read_csv(shard)
+        if len(d) != expect:
+            sys.exit(f"[FATAL] shard {shard} has {len(d)} rows, expected {expect}")
+        frames.append(d)
+    rows_out = pd.concat(frames, ignore_index=True)
+    if len(rows_out) != len(sub):
+        sys.exit(f"[FATAL] assembled {len(rows_out)} rows, expected {len(sub)}")
+    rows_out.to_csv(output_path, index=False)
+    print(f"  assembled {len(rows_out)}/{len(sub)} materials -> {output_path}")
 
     # ---- Summary ----
-    final = pd.DataFrame(rows_out)
+    final = rows_out
     gen_cols = [c for c in final.columns if c.startswith("generation_")]
     print("\n--- validator compatibility ---")
     print(f"  material_id col: {'material_id' in final.columns}  output col: {'output' in final.columns}")
