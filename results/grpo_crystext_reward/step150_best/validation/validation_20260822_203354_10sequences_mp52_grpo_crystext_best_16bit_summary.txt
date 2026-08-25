@@ -1,0 +1,13 @@
+Validation Summary for generated/grpo_crystext_best/generated_cifs_grpo_crystext_reward_10seq_maxtok3072_0_8095.csv
+Generated on: 2026-08-22 23:03:06
+Total samples: 8096
+Success rate: 29.8%
+
+================================================================================
+RMSE PANEL (StructureMatcher RMS, Å)
+================================================================================
+Strict matched RMS  (n=14312): mean=0.145  median=0.053  std=0.166  min=0.000  max=0.500
+Near-miss RMS (all valid gens, n=47248): mean=0.494  median=0.583  std=0.271
+  bins:  <0.5: 18057   0.5-1.0: 29077   1.0-1.5: 114   >=1.5: 0
+
+Detailed statistics saved in: experiments/grpo_crystext_reward/eval_best/validation_20260822_203354_mp52_16bit_10sequences_mp52_grpo_crystext_best/validation_20260822_203354_10sequences_mp52_grpo_crystext_best_16bit.csv

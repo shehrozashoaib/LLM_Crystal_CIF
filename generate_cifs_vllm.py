@@ -58,6 +58,12 @@ def add_args(p: argparse.ArgumentParser) -> argparse.ArgumentParser:
     p.add_argument("--chunk", type=int, default=1000, help="prompts per incremental save")
     # accepted for CLI compatibility with the HF script (vLLM batches internally):
     p.add_argument("--batch_size", type=int, default=None, help="ignored (vLLM continuous-batches)")
+    p.add_argument("--system_prompt", choices=["sft", "grpo"], default="sft",
+                   help="sft (default) = the system message code_FineTune.py trained with, and "
+                        "what every eval in results/ used. grpo = the longer message the grpo_*.py "
+                        "trainers prompt with ('...Return only one complete CIF file and nothing "
+                        "else.'). They differ; use grpo to evaluate a GRPO run under the prompt it "
+                        "was actually optimised on.")
     return p
 
 
@@ -73,11 +79,20 @@ def resolve_base_model(model_dir: str, override: str) -> str:
     return DEFAULT_BASE_MODEL
 
 
-def make_prompt_text(tokenizer, instruction: str, inp: str) -> str:
-    """Identical to training's formatting (without the appended target)."""
+SYSTEM_PROMPTS = {
+    # code_FineTune.py (SFT) and every eval in results/
+    "sft": "You are an expert in materials science and crystallography.",
+    # grpo_*.py trainers
+    "grpo": ("You are an expert in materials science and crystallography. "
+             "Return only one complete CIF file and nothing else."),
+}
+
+
+def make_prompt_text(tokenizer, instruction: str, inp: str, system: str = "sft") -> str:
+    """Identical to SFT training's formatting (without the appended target)."""
     user_content = f"{instruction}\n\n{inp}" if (inp is not None and str(inp).strip()) else instruction
     messages = [
-        {"role": "system", "content": "You are an expert in materials science and crystallography."},
+        {"role": "system", "content": SYSTEM_PROMPTS[system]},
         {"role": "user", "content": user_content},
     ]
     return tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
@@ -103,6 +118,7 @@ def main() -> None:
     print(f"base={base_model}  adapter={args.model_dir}")
     print(f"ret_seqs={args.ret_seqs}  max_new_tokens={args.max_new_tokens}  max_model_len={args.max_model_len}")
     print(f"temperature={args.temperature}  top_p={args.top_p}  gpu_mem_util={args.gpu_mem_util}")
+    print(f"system_prompt={args.system_prompt}: {SYSTEM_PROMPTS[args.system_prompt]!r}")
 
     # ---- vLLM engine (base + LoRA) ----
     llm = LLM(
@@ -157,7 +173,8 @@ def main() -> None:
             print(f"  [resume] shard {shard.name} incomplete ({got}/{len(chunk)}) -> regenerate")
 
         prompts = [make_prompt_text(tokenizer, str(r["instruction"]),
-                                    str(r["input"]) if pd.notna(r["input"]) else "")
+                                    str(r["input"]) if pd.notna(r["input"]) else "",
+                                    system=args.system_prompt)
                    for _, r in chunk.iterrows()]
         outputs = llm.generate(prompts, sampling, lora_request=lora_req)
         rows_chunk = []

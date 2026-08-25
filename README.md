@@ -29,6 +29,13 @@ This repo is the code + data + results for a paper resubmission. The experimenta
 ├── generate_cifs_qwen_chat.py      # HuggingFace generate() fallback (same I/O contract)
 ├── cif_structure_validator_mp52.py # grades generated CIFs (best-of-N match + RMSE panel)
 ├── grpo_from_repair_mix_sft_target_aligned_v3.py  # GRPO trainer (StructureMatcher reward)
+├── grpo_crystext_reward.py         # GRPO trainer with CrysText's reward (see below)
+├── test_crystext_reward_parity.py  # proves that reward == CrysText's, rung for rung
+├── track_crystext_reward.py        # reward-signal record: tiers, parse rate, group variance
+├── setup_crystext_env.sh           # builds /venv/py312 on x86_64 + Blackwell
+├── run_crystext_grpo.sh            # crash-resume launcher for the CrysText-reward run
+├── run_eval_crystext.sh            # full-test eval: vLLM generate → pymatgen validate
+├── crystext_hf_upload.py           # pushes the CrysText-run adapter to the HF model repo
 │
 │   ── orchestrators ──
 ├── run_composition_sweep.sh        # composition ratios
@@ -50,7 +57,11 @@ This repo is the code + data + results for a paper resubmission. The experimenta
 │   └── ratio_sweep/                # diagonal datasets + manifest_ratio_sweep.json
 │
 └── results/                        # per run: predicted_cifs.csv.gz + validation/ panel
-    └── mcnemar_ratio_sweep.csv     # paired significance tests
+    ├── mcnemar_ratio_sweep.csv     # paired significance tests
+    └── grpo_crystext_reward/       # GRPO w/ CrysText reward — 2 evaluated checkpoints, plus
+                                    #   val_trace.jsonl (43 held-out checks), reward_trace.jsonl.gz
+                                    #   (26,568 completions), reward_group_trace.jsonl.gz (4,428
+                                    #   groups, within-group variance), reward_record.csv
 ```
 
 All `*.csv.gz` are gzip-compressed (CIF text compresses ~6–7×). `pandas.read_csv` reads `.gz`
@@ -233,12 +244,165 @@ all 1,500 steps with a live advantage signal (`frac_reward_zero_std=0`) and non-
 movement (KL≈0.25) — RL moved the policy, but the match-reward objective yielded no improvable
 gradient from a near-converged SFT prior. The reward *shape* wasn't the bottleneck; the objective is.
 
+**Cross-check with an external reward.** To test whether the reward *design* was the culprit, we
+re-ran GRPO with the scoring function from [CrysText](https://github.com/truptimohanty/CrysText)
+copied verbatim (and their hyperparameters and batch geometry), from the r=32 SFT adapter:
+
+| model | reward | best-of-10 | strict-RMS (Å) |
+|---|---|---:|---:|
+| **SFT start point** (`rank_r32_s3407`) | — | **29.9%** | **0.050** |
+| GRPO @ step 150 | CrysText, verbatim | 29.8% | 0.053 |
+| GRPO @ step 1150 | CrysText, verbatim | 24.3% | 0.108 |
+
+Their reward *preserves* the SFT model early — 29.8% vs 29.9%, inside noise on 8,096 samples —
+where our discrete/continuous rewards give up ~2 pp. So reward shape does matter at the margin.
+But it still never **beats** SFT, and it degrades the same way with more steps (−5.6 pp by step
+1150, with matches twice as loose). A third reward design reaching the same ceiling is independent
+support for the conclusion above: **the objective, not the reward shape, is the bottleneck.**
+Details, traces and the surviving adapter: the [CrysText-reward section](#grpo-with-the-crystext-reward-external-reward-baseline) below.
+
+---
+
+## GRPO with the CrysText reward (external-reward baseline)
+
+`grpo_crystext_reward.py` runs our GRPO setup — Qwen2.5-7B-Instruct + Unsloth LoRA, val-set
+monitor, best-model tracking, JSONL reward traces — with the **reward function from
+[truptimohanty/CrysText](https://github.com/truptimohanty/CrysText/blob/main/grpo_training.py)**
+instead of ours. This isolates the reward design: same model, same data, same optimiser,
+different scoring rule.
+
+**Their reward (verbatim, range `[-2, 3]`):**
+
+| test | points |
+|---|---|
+| generated CIF parses with pymatgen | +0.5 |
+| `structure_validity` (min interatomic dist 0.5 Å, volume > 0.1, space group assignable) | +0.5 |
+| reduced formula == reference reduced formula | +0.5 |
+| StructureMatcher match, `stol=0.9 ltol=0.7 angle_tol=20` | +0.25 |
+| StructureMatcher match, `stol=0.7 ltol=0.5 angle_tol=15` | +0.25 |
+| StructureMatcher match, `stol=0.5 ltol=0.3 angle_tol=10` | +1.0 |
+| anything raises (unparseable generation) | −2 |
+
+Their tightest rung is exactly our `_MATCHER_VAL`, so `match_tier` in the traces keeps this
+repo's `val / med / loose / no_match / not_parseable` names and the files drop straight into
+`analyze_grpo_reward_traces.py`.
+
+**Ours, kept unchanged so runs stay comparable:** Qwen2.5 chat-template prompting (CrysText
+used an Alpaca string on a Mistral base), tokenizer handling, `Data/source/mp_52_*.csv.gz`,
+`HYPERPARAMS`/`GRPO_KW`, and the validation monitor (still StructureMatcher at `stol=0.5`,
+*not* the CrysText score, so val match rate is comparable with the continuous/discrete runs).
+
+**Two adaptations at the call site — neither touches the scoring math:**
+
+1. CrysText fed the raw completion to pymatgen because their base model emitted bare CIF.
+   Qwen2.5-**Instruct** wraps output in prose and code fences, which pymatgen scores −2
+   (verified in the parity test's `fenced` case), so the extracted CIF block is what gets
+   scored. `CRYSTEXT_RAW_COMPLETION=1` restores their literal behaviour.
+2. Their `Structure.from_str(answer, ...)` on the *reference* CIF sits outside the try block,
+   so one bad ground-truth row raises and kills the run. Here it is caught, logged, and
+   scored −2 like any other failure.
+
+**Tokenizer (Qwen2.5 / ChatML).** `_configure_qwen_tokenizer()` enforces: `eos = <|im_end|>`
+so generation stops at the end of the assistant turn instead of running to
+`max_completion_length` (which would clip CIFs and hand the reward truncated text);
+`pad = <|endoftext|>`, kept distinct from eos; left padding for batched generation; and a
+hard failure if the checkpoint's tokenizer has no chat template. Both terminators are passed
+as `eos_token_id` during val generation.
+
+### Results
+
+Run: start from `rank_r32_s3407`, CrysText's reward *and* CrysText's hyperparameters
+(lr 1e-6, temperature 1.0, `paged_adamw_8bit`, linear schedule, wd 0.1, warmup 0.1,
+betas 0.9/0.99, grad-clip 0.1) and their batch geometry (`per_device_train_batch_size=12`,
+`gradient_accumulation_steps=1`, `num_generations=6` → **12 completions per step = 2 crystals ×
+6 generations**). Stopped at step 2,184 / 3,000 because held-out match was falling.
+
+| Checkpoint | Best-of-10 (8,096 test) | Strict-RMS (med Å) |
+|---|---:|---:|
+| SFT start point (`rank_r32_s3407`) | 29.9% | 0.050 |
+| step 150 | 29.8% | 0.053 |
+| step 1150 | 24.3% | 0.108 |
+
+The decline is monotone in every window of the run — this is the training-side record from
+`results/grpo_crystext_reward/reward_record.csv`, where *val-tier* is the share of completions
+matching at `stol=0.5` and *group variance* is the share of crystal groups whose 6 generations
+do not all score identically (a group with no spread contributes no GRPO gradient):
+
+| steps | reward mean | val-tier | group variance |
+|---|---:|---:|---:|
+| 1–400 | 2.137 | 44.8% | 66.9% |
+| 801–1200 | 1.915 | 33.6% | 79.3% |
+| 1601–2000 | 1.780 | 21.2% | 88.9% |
+| 2001+ | 1.714 | 20.4% | 88.7% |
+
+Rising group variance alongside falling match quality is generations *scattering*, not the model
+finding better options. Held-out checks (`val_trace.jsonl`, 43 checks) peak at 0.45 per-material
+at step 150 and sit in the 0.10–0.25 band thereafter.
+
+**Interpretation.** Their reward pays 1.5–2.0 out of 3.0 for a structure that parses, is valid and
+has the right formula but matches *nothing* — so most of the reward mass is reachable without
+getting the geometry right, and the gradient pushes toward "safe, plausible, wrong". Ours paid ≈0
+for the same output, which is a cleaner signal in principle but produced fewer informative groups.
+Neither beats simply stopping after SFT. The untested variant is **their reward at our lr (5e-7)**,
+which would separate the reward design from the 2× learning rate.
+
+Artifacts: `results/grpo_crystext_reward/` (predictions, validation, reward + val traces).
+Adapter: [`grpo_crystext_reward/step2150`](https://huggingface.co/shehrozashoaib/LLM_Crystal_CIF)
+on the HF model repo — that is the *last* checkpoint (degraded, and not itself evaluated); the two
+checkpoints that were evaluated no longer exist as weights, see
+[Corrections & provenance #5](#5-best-model-tracking-did-not-survive-a-resume-weights-lost).
+
+### Run it
+
+```bash
+bash setup_crystext_env.sh                      # -> /venv/py312 (torch cu128, trl 0.24, unsloth, pymatgen)
+
+# prove the reward is bit-identical to CrysText's before spending GPU-hours
+git clone https://github.com/truptimohanty/CrysText ../CrysText
+/venv/py312/bin/python test_crystext_reward_parity.py --n 10
+
+# 2-step wiring check on a small model
+GRPO_SMOKE=1 GRPO_START_MODEL=Qwen/Qwen2.5-0.5B-Instruct \
+  /venv/py312/bin/python grpo_crystext_reward.py
+
+# the real run (crash-resume loop, same pattern as grpo_run.sh)
+GRPO_START_MODEL=experiments/rank_r32_s3407/checkpoints/checkpoint-3000 \
+  bash run_crystext_grpo.sh
+
+# reward-signal record at any point during/after training
+/venv/py312/bin/python track_crystext_reward.py --window 50 --csv reward_record.csv
+
+# full 8,096-material test eval: vLLM generate -> pymatgen validate
+bash setup_vllm.sh                              # -> /venv/vllm
+bash run_eval_crystext.sh best                  # SYSTEM_PROMPT=sft for comparability with results/
+```
+
+`test_crystext_reward_parity.py` lifts both scorers out of their source files (neither is
+importable — both build a model at import time) and runs them head-to-head on real MPTS-52
+CIFs plus mutations that span every rung: **180/180 identical, rewards spanning
+`{-2.0, 1.0, 1.5, 1.75, 2.0, 2.5, 3.0}`**. Note that rigid translation and uniform volume
+scaling are *not* useful mutations — StructureMatcher normalises both — so the test perturbs
+sites individually and applies anisotropic strain.
+
+**Env overrides:** `GRPO_START_MODEL`, `GRPO_START_TOKENIZER`, `GRPO_OUTPUT_DIR`,
+`CRYSTEXT_RAW_COMPLETION=1`, `CRYSTEXT_HPARAMS=1` (their lr `1e-6`, `temperature 1.0`,
+`num_generations 6`, `weight_decay 0.1`, `warmup_ratio 0.1`, `paged_adamw_8bit`, linear schedule,
+grad-clip 0.1), `GRPO_PDBS` / `GRPO_GRAD_ACCUM` / `GRPO_NUM_GEN` (batch geometry),
+`GRPO_MAX_STEPS`, `GRPO_SAVE_STEPS`, `GRPO_BETA`, `GRPO_SMOKE=1`.
+
+> **Reward scale.** CrysText's range is `[-2, 3]`, ours was `[-0.5, 1.05]`. GRPO normalises
+> advantages by within-group std, so the scale itself is not the lever — the *shape* is. When
+> comparing runs, read `has_match_variance` in `reward_group_trace.jsonl`, not `reward_mean`:
+> mean reward is dominated by the partial credit their ladder pays for parseable-but-unmatched
+> structures, and it moved far less than test-set match did (2.14 → 1.71 while best-of-10 fell
+> 29.8% → 24.3%).
+
 ---
 
 ## Corrections & provenance
 
-Three issues were found while preparing the diagonal sweep. They are recorded here rather than
-quietly patched, because two of them affect numbers already reported.
+Issues found while preparing the diagonal sweep and the CrysText GRPO run. They are recorded here
+rather than quietly patched, because several of them affect numbers already reported.
 
 ### 1. The curriculum family is not volume-matched
 
@@ -283,6 +447,27 @@ shipped the 24k-capped files — code and data disagreed, and the capping script
 Fixed: `--budget_total` (default **24000**) caps the union, subsampled proportional to the
 leakage-safe pools. Verified to regenerate the committed files exactly (11,249 / 12,751 / 24,000).
 Pass `--budget_total 0` to reproduce the older uncapped datasets.
+
+### 4. Every GRPO run was evaluated under a prompt it was not trained on
+
+`code_FineTune.py` (SFT) and both generation scripts use the system message
+`"You are an expert in materials science and crystallography."` — while **all three** `grpo_*.py`
+trainers append `" Return only one complete CIF file and nothing else."` So `grpo_r32_from3000_discrete`,
+`grpo_r32_from3000_continuous` and the CrysText run were all *optimised* on one prompt and *scored*
+on another. `generate_cifs_vllm.py` now takes `--system_prompt {sft,grpo}`, defaulting to `sft` so
+every number already in `results/` is unchanged; the CrysText-run evals used `grpo`. Re-running an
+older GRPO eval with `--system_prompt grpo` would quantify what the mismatch cost.
+
+### 5. Best-model tracking did not survive a resume (weights lost)
+
+`GRPOValidationCallback` initialised `best_val_match_rate = 0.0`, and a resumed run builds a fresh
+callback — so on resuming the CrysText run from step 1150, the first validation check overwrote
+`best_model/` with a *worse* checkpoint, and `save_total_limit=10` later evicted checkpoint-1150.
+The weights of both evaluated checkpoints (steps 150 and 1150) are therefore gone; their
+predictions and validation panels are published in full under `results/grpo_crystext_reward/`, so
+the reported numbers remain verifiable, but those adapters cannot be re-run. Fixed in
+`grpo_crystext_reward.py`: the callback restores the previous best from `best_info.json`, so
+`best_model/` can only ever improve. **Port that fix before resuming any other `grpo_*.py` trainer.**
 
 ### Provenance of the diagonal runs
 
@@ -339,9 +524,13 @@ the path via `--arch {auto,a100,gh200}`.
 
 **NVIDIA RTX PRO 6000 Blackwell (sm_120, x86_64)** — `ratio_3to4`, `ratio_4to3`. Caveats found there:
 
-- **vLLM's FlashInfer sampler fails on sm_120 with a CUDA < 12.9 toolkit**, reporting the misleading
-  `FlashInfer requires GPUs with sm75 or higher`. Set `VLLM_USE_FLASHINFER_SAMPLER=0` (the runner
-  does this automatically) or install a CUDA ≥ 12.9 toolkit.
+- **vLLM's FlashInfer path fails on sm_120 with a CUDA < 12.9 toolkit**, reporting the misleading
+  `FlashInfer requires GPUs with sm75 or higher`. Root cause: FlashInfer resolves the CUDA version
+  from the *system* `nvcc` (12.8 in this image) rather than torch's bundled runtime (cu130), then
+  refuses SM 12.x — the sm75 message is vLLM re-raising it. It bites in two places, so both need
+  routing around: `VLLM_USE_FLASHINFER_SAMPLER=0` for the sampler and
+  `VLLM_ATTENTION_BACKEND=FLASH_ATTN` for attention (the runners set both automatically).
+  Installing a CUDA ≥ 12.9 toolkit also fixes it.
 - **Intermittent segmentation faults** hit training *and* inference across three independent stacks
   (unsloth+xformers, unsloth+cuDNN, and vLLM on a different torch/CUDA build) — most consistent with
   a driver/hardware issue rather than a library bug. The pipeline is built to survive them:

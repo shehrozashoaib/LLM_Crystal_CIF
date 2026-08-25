@@ -14,5 +14,6 @@ __pycache__/
 # working dirs — curated copies live in results/
 experiments/
 generated/
+logs/
 unsloth_compiled_cache/
 *.bak
