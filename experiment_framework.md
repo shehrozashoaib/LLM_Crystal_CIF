@@ -5,7 +5,7 @@
 
 ---
 
-## 0. Current status (last updated 2026-06-16)
+## 0. Current status (last updated 2026-08-25)
 
 Pipeline implemented and verified end-to-end (dataset build → SFT train → vLLM generate → validate w/ RMSE panel). Runs use the **full 8,096-sample MPTS-52 test set**, **24,000 unique training crystals**, **pinned 4,500 steps**, final model (no early stopping), leakage-filtered.
 
@@ -20,16 +20,21 @@ Pipeline implemented and verified end-to-end (dataset build → SFT train → vL
 | Volume control (#2) | combined-54k vs oversampled-MPTS | ⬜ not started | – |
 | **LoRA rank (#3)** | r=16/32/64/128 × 2 seeds (0.53/1.05/2.08/4.07% params) | ✅ done | **28.3 / 30.0 / 31.3 / 33.6%** (mean) |
 | → *finding* | monotonic, no plateau (+1.3–2.3pp/doubling); seed spread ≤0.5pp | ✅ | rank is **not** the weakest lever up to ~4% params |
-| **Curriculum (#4)** | forward (MP-20→MPTS-52) @ S=4500 | ✅ done | **30.7%** |
-| **Curriculum (#5)** | reverse (MPTS-52→MP-20) @ S=4500 | ✅ done | **27.5%** |
+| **Curriculum (#4)** † | forward (MP-20→MPTS-52) @ S=4500 | ✅ done | **30.7%** |
+| **Curriculum (#5)** † | reverse (MPTS-52→MP-20) @ S=4500 | ✅ done | **27.5%** |
 | → *forgetting* | MP-20: fwd 65.7→60.4 (−5.3) · rev 53.5→69.8 (+16.3) | ✅ | recency-dominated (best at last-trained set) |
-| **Curriculum (#4.3.1)** | phase-split k=0/1000/2109/3000/4500 (switch point) | ✅ done | 30.1 / **32.1** / 30.7 / 29.9 / 26.6% |
-| → *finding* | peak at short warmup k=1000; data-matched 2:7 = 31.2% (< k=1000) | ✅ | **light warmup helps, a lot hurts; emphasis via steps, keep pool full** |
+| **Curriculum (#4.3.1)** † | phase-split k=0/1000/2109/3000/4500 (switch point) | ✅ done | 30.1 / **32.1**† / 30.7† / 29.9† / 26.6% |
+| → *finding* | peak at k=1000, but **confounded with volume** — see §4.3.1 correction | ⚠️ | not a matched-budget win; needs rerun on the capped 24k pools |
+| **Diagonal (#4.3.2)** | data ratio == step ratio @ 24k: 1:7 / 2:7 / 3:7 / 3:4 / 4:3 | ✅ done | 30.4 / 30.2 / 29.7 / **27.6** / **28.1%** |
+| → *finding* | McNemar: 1:7 vs baseline n.s. (p=0.38); 3:4 vs baseline −2.5pp (p=2e-12) | ✅ | **no MP-20 mixture beats target-only at matched volume+exposure** |
 | **GRPO (#6/#8)** | fork ckpt-3000 vs continued-SFT @ matched compute: discrete/g4 · continuous/g8 | ✅ done | **27.7–28.1%** (SFT 29.9%) |
 | → *finding* | reward flat both shapes, signal live, KL≈0.25 — RL moved policy, no gradient | ✅ | **GRPO < SFT ~2pp regardless of reward shape or group size; reproduces paper's null** |
 | GRPO (#7 RAFT, #9 sweep) | rejection-sampling-FT; further hyperparams | ⬜ not run | – |
 
-Legend: ✅ done · ⏳ in progress · ⬜ pending. See §5 for the full run table.
+Legend: ✅ done · ⏳ in progress · ⬜ pending · ⚠️ finding revised.
+**† = trained on the uncapped 51,534-crystal union, NOT volume-matched to the 24,000-crystal
+baseline it is compared against.** See §4.3.1 correction and README "Corrections & provenance".
+See §5 for the full run table.
 
 ---
 
@@ -164,13 +169,28 @@ These are the controls that turn "we got a higher number" into "we proved why."
 
 #### 4.3.1 Phase-split / target-emphasis sweep ✅ done
 
-**Result.** Switch point k = 0/1000/2109/3000/4500 → **30.1 / 32.1 / 30.7 / 29.9 / 26.6%**. The curve
-**peaks at a short warmup (k=1000 = 32.1%)** — best of any curriculum point (+2.0 pp over pure MPTS-52,
-+1.4 pp over the proportional forward split); more warmup erodes it monotonically to pure-MP-20's 26.6%.
-A **data-matched** control (MP-20 pool subsampled 24k→7.8k so data ratio = step ratio 2:7) gave **31.2%
-< k=1000**, so the warmup benefit is from MP-20 crystal **diversity** (full pool, few steps), not
-repetition. Takeaway: *put target-emphasis in the steps, keep the warmup pool full — a little easy-domain
-warmup helps, a lot hurts.* (Design as proposed below.)
+**Result (as run).** Switch point k = 0/1000/2109/3000/4500 → **30.1 / 32.1 / 30.7 / 29.9 / 26.6%**,
+with a "data-matched" control at 31.2%.
+
+> ### ⚠️ Correction (2026-08-25) — these points are confounded with volume
+>
+> `psplit_mp20base` and every fork off it (`k=1000/2109/3000`) drew their phases from the **uncapped
+> leakage-safe union (24,154 + 27,380 = 51,534 crystals)**, and the `psplit_datamatch` control used
+> 7,823 + 27,380 = **35,203**. All were compared against a **24,000**-crystal baseline
+> (`comp_mp20_00`). At a pinned 4,500 steps that is ~2.8 epochs versus the baseline's 6.0 — i.e.
+> **more unique data at the same compute**, which is reviewer concern #1 reappearing inside our own
+> rebuttal. The 24k-capped curriculum datasets were only uploaded 2026-07-15, after these runs, and
+> no committed run consumed them.
+>
+> **Consequences.** (a) The k=1000 peak of 32.1% cannot be quoted as a matched-budget result.
+> (b) The "diversity, not repetition" conclusion rested on the 31.2% control and is unsupported at
+> matched volume — §4.3.2 measures the properly matched 2:7 point at **30.2%**.
+> (c) `build_curriculum_datasets.py` now takes `--budget_total` (default 24000) and reproduces the
+> committed `Data/curriculum/` files exactly, so the capped rerun is possible.
+>
+> **Still open:** §4.3.2's 2:7 point shares k=1000's step split but also shrinks the MP-20 *pool*, so
+> it cannot separate "full pool, few steps" from "small pool, few steps." Deciding whether 32.1%
+> survives volume matching needs a k=1000 run on the capped pools. This is the outstanding gap.
 
 
 **Motivation.** Recency dominated (§4.3): forward beats reverse *because* it ends on MPTS-52. Natural
@@ -199,6 +219,62 @@ MP-20 base run is needed to get clean low-`k` fork points.)
 **Proves.** The *shape* of accuracy vs. target-emphasis at matched budget — i.e. whether "pretrain on
 MP-20, then anneal hard onto MPTS-52" has a sweet spot that beats pure-MPTS-52 SFT, or whether forward's
 +0.6 pp over baseline is the most order/emphasis can buy.
+
+---
+
+#### 4.3.2 Target-emphasis diagonal (data ratio == step ratio) ✅ done
+
+**Motivation.** §4.1 varies *what data* the model sees; §4.3 varies *what order*. Neither isolates
+**how much of the budget each domain gets**, and §4.3.1's attempt to do so was confounded with volume
+(correction above). This sweep fixes that by construction.
+
+**Design.** Apply the MP-20:MPTS-52 split *identically* to the data budget and the step budget:
+
+```
+data_mp20  = round_half_up(24000 * X/(X+Y))    steps_mp20 = round_half_up(4500 * X/(X+Y))
+data_mp52  = 24000 - data_mp20                 steps_mp52 = 4500 - steps_mp20
+```
+
+Because the data fraction equals the step fraction, `steps · eff_batch / data` is the same constant
+for both phases: **every phase runs exactly 6.00 epochs**, identical to a single-phase composition
+run at 24,000 crystals / 4,500 steps. Volume, total steps, and per-crystal exposure are therefore
+*all* held fixed, and the single free variable is where the emphasis falls.
+
+Built by `build_ratio_datasets.py` (pools shuffled once under MASTER_SEED=3407 then truncated, so a
+smaller X's set is a strict subset of a larger X's — ratios differ only by what is *added*). Leakage
+assertions run at build time. Orchestrated by `run_ratio_sweep.sh`.
+
+**Results** (full 8,096 MPTS-52 test set):
+
+| Run | MP-20 : MPTS-52 | share | steps | best-of-10 | strict-RMS (Å) |
+|---|---|---:|---|---:|---:|
+| `comp_mp20_00` | 0 : 24,000 | 0% | 0+4500 | 30.1% | 0.050 |
+| `ratio_1to7` | 3,000 : 21,000 | 12.5% | 563+3937 | 30.4% | 0.052 |
+| `ratio_2to7` | 5,333 : 18,667 | 22.2% | 1000+3500 | 30.2% | 0.053 |
+| `ratio_3to7` | 7,200 : 16,800 | 30.0% | 1350+3150 | 29.7% | 0.052 |
+| `ratio_3to4` | 10,286 : 13,714 | 42.9% | 1929+2571 | 27.6% | 0.050 |
+| `ratio_4to3` | 13,714 : 10,286 | 57.1% | 2571+1929 | 28.1% | 0.053 |
+| `comp_mp20_100` | 24,000 : 0 | 100% | 4500+0 | 26.6% | 0.039 |
+
+**Paired McNemar** (`analyze_ratio_sweep.py` → `results/mcnemar_ratio_sweep.csv`, n=8,096):
+
+| comparison | Δ | p | verdict |
+|---|---:|---:|---|
+| `ratio_1to7` vs `comp_mp20_00` | +0.32 pp | 0.38 | not significant |
+| `ratio_3to4` vs `comp_mp20_00` | −2.51 pp | 2.0e-12 | **significant** |
+| `ratio_1to7` vs `ratio_4to3` | +2.38 pp | 9.2e-11 | **significant** |
+| `ratio_3to4` vs `ratio_4to3` | −0.44 pp | 0.22 | not significant |
+
+**Proves.** (1) A light MP-20 warmup is statistically indistinguishable from no warmup — the
+apparent +0.3 pp is noise. (2) A heavy MP-20 emphasis significantly *hurts*. (3) The decline across
+the diagonal is real, and (4) its tail is flat, not rising — the 4:3 uptick over 3:4 is n.s.
+Together: **at matched volume, exposure and steps, no MP-20 mixture beats training on the target
+domain alone** — an independent replication of §4.1's conclusion through a different lever, and the
+matched-budget answer §4.3.1 was reaching for.
+
+**Provenance.** `ratio_1to7/2to7/3to7` predate the committed builder; it reproduces their splits
+exactly, but their original sampling script was not preserved, so the specific crystals may differ.
+`ratio_3to4`/`ratio_4to3` were produced by the committed builder.
 
 ---
 
@@ -247,7 +323,8 @@ GRPO is "helpful" only if it beats **both** beyond the seed band.
 | 2 | Combined-54k vs oversampled-MPTS-54k | Data | size, steps | mixture vs duplication | #1 (volume control) |
 | 3 | LoRA rank sweep r∈{16,32,64,128} | Params | data, steps | rank | ranking realism |
 | 4 | Mixed vs curriculum-forward @ matched S | Schedule | pool, steps, exposure | order | #1 (schedule confound) |
-| 5 | Curriculum reverse + forgetting probe | Schedule | budget | order direction | recency vs easy-to-hard |
+| 5 | Curriculum reverse + forgetting probe † | Schedule | budget | order direction | recency vs easy-to-hard |
+| 5b | **Target-emphasis diagonal @ 24k** (1:7…4:3) ✅ | Schedule×Data | volume, steps, **epochs (6.00/phase)** | budget share per domain | #1 at matched exposure |
 | 6 | GRPO best-of-N curve + diversity (both priors) | RL | inference N, split | RL on/off, prior | "GRPO useless?" → regime + mechanism |
 | 7 | Rejection-sampling-FT vs GRPO @ matched compute | RL | compute | RL vs filtered-SFT | is RL needed at all |
 | 8 | Continued-SFT vs GRPO @ matched compute | RL | compute | RL vs more SFT | trivial-explanation control |
@@ -276,7 +353,13 @@ All runs: same frozen 1000-sample MPTS-52 test set, ≥3 seeds, report the full 
 
 ---
 
-### Open TODOs (need the data/code folder connected)
-- [ ] Compute MP-20 ↔ MPTS-52-test/val `material_id` overlap (leakage filter size).
+### Open TODOs
+- [ ] **Rerun the k-sweep on the capped 24k pools** (`Data/curriculum/`, now regenerable via
+      `build_curriculum_datasets.py --budget_total 24000`). k=1000's 32.1% is the highest number in
+      the study and the only one never reproduced at matched volume; §4.3.2's 2:7 point (30.2%)
+      shares its step split but not its pool size, so the "full pool, few steps" hypothesis is still
+      untested. **Highest-value remaining run.**
+- [ ] Upload the diagonal LoRA adapters (1:7, 2:7, 3:7, 3:4, 4:3) to the HF weights repo.
+- [x] Compute MP-20 ↔ MPTS-52-test/val `material_id` overlap (leakage filter size) → 2,982 dropped.
 - [ ] Compute MP-20 token lengths → token-balanced composition table.
 - [ ] Confirm effective batch / step counts from the training scripts to finalize matched-step numbers.
