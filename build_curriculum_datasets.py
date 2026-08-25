@@ -24,12 +24,16 @@ Controls (identical philosophy to build_composition_datasets.py):
      curriculum see the identical set of crystals — only the ORDER differs.
   3. DETERMINISM: a fixed master seed; derived per-set seeds.
 
-Note on the union size (51,534, not the framework's 54,516):
-  54,516 = 27,136 (MP-20 train) + 27,380 (MPTS-52 train) ignores the mandatory
-  leakage filter. After dropping the 2,982 MP-20 train crystals that live in the
-  MPTS-52 eval set, the leakage-safe union is 24,154 + 27,380 = 51,534. We do NOT
-  cross-pool dedup (a material shared by both train pools appears once per phase,
-  hence twice in mixed) so that mixed and curriculum remain the same multiset.
+Note on the union size (--budget_total, default 24,000):
+  The leakage-safe pools are 24,154 (MP-20) + 27,380 (MPTS-52) = 51,534. Training
+  on all of them would give the curriculum runs 2.15x the composition sweep's
+  24,000 crystals, re-introducing exactly the volume confound this study exists to
+  remove. So the union is CAPPED to --budget_total and subsampled proportional to
+  the leakage-safe pool sizes (46.9 : 53.1 -> 11,249 + 12,751). Pass
+  --budget_total 0 to disable the cap and use the full 51,534 (this reproduces the
+  pre-2026-07-15 datasets that the committed curriculum results were trained on).
+  We do NOT cross-pool dedup (a material shared by both train pools appears once
+  per phase, hence twice in mixed) so mixed and curriculum stay the same multiset.
 
 Outputs (into Data/curriculum/):
   - train_mixed.csv            shuffled leakage-safe union (the reference run)
@@ -55,6 +59,7 @@ import pandas as pd
 
 DEFAULT_SRC_DIR = "Data/source"
 DEFAULT_OUT_DIR = "Data/curriculum"
+TOTAL_TRAIN = 24_000        # matched volume (build_composition_datasets.py)
 TOTAL_VAL_EACH = 4_000        # rows per matched val set (logging only; eval doesn't gate)
 TEST_FROZEN_MP20_N = 1_000    # frozen MP-20 forgetting-probe subset
 MASTER_SEED = 3407
@@ -109,7 +114,8 @@ def _sample(df: pd.DataFrame, n: int, seed: int, exclude_ids: set | None = None)
     return pool.sample(n=n, random_state=seed)
 
 
-def build(src_dir: Path, out_dir: Path, total_step_budget: int) -> dict:
+def build(src_dir: Path, out_dir: Path, total_step_budget: int,
+          budget_total: int = TOTAL_TRAIN) -> dict:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     mp20_train = _load(src_dir, "mp20_train")
@@ -142,6 +148,23 @@ def build(src_dir: Path, out_dir: Path, total_step_budget: int) -> dict:
     # --- Phase files (the same multiset that mixed is built from) ------------
     phase_mp20 = mp20_train_clean[COLS].sample(frac=1.0, random_state=MASTER_SEED + 1).reset_index(drop=True)
     phase_mp52 = mp52_train[COLS].sample(frac=1.0, random_state=MASTER_SEED + 2).reset_index(drop=True)
+
+    # --- Cap the union to the matched volume (see module docstring) ----------
+    pool20, pool52 = len(phase_mp20), len(phase_mp52)
+    if budget_total and budget_total > 0:
+        if budget_total > pool20 + pool52:
+            sys.exit(f"[FATAL] budget_total={budget_total} exceeds leakage-safe pools "
+                     f"({pool20} + {pool52} = {pool20 + pool52})")
+        keep20 = round(budget_total * pool20 / (pool20 + pool52))
+        keep52 = budget_total - keep20
+        phase_mp20 = phase_mp20.head(keep20).reset_index(drop=True)
+        phase_mp52 = phase_mp52.head(keep52).reset_index(drop=True)
+        print(f"[budget] union capped to {budget_total}: MP-20 {pool20}->{keep20}, "
+              f"MPTS-52 {pool52}->{keep52} (proportional, {pool20/(pool20+pool52):.4f})")
+    else:
+        print(f"[budget] NO CAP — using full leakage-safe union {pool20 + pool52} "
+              f"(not volume-matched to the 24k composition sweep)")
+
     n_mp20, n_mp52 = len(phase_mp20), len(phase_mp52)
 
     # --- Mixed = shuffled concatenation of the two phases (SAME multiset) ----
@@ -221,10 +244,16 @@ def build(src_dir: Path, out_dir: Path, total_step_budget: int) -> dict:
             "mp20_test_dropped_in_mp52_train": dropped_mp20_test,
         },
         "union": {
+            "budget_total": budget_total,
             "n_mp20_phase": n_mp20,
             "n_mp52_phase": n_mp52,
             "n_union_mixed": n_mp20 + n_mp52,
-            "note": "leakage-safe union; not cross-pool deduped (same multiset as the two phases)",
+            "pool_ratio_mp20": round(pool20 / (pool20 + pool52), 4),
+            "leakage_safe_pools_available": {"mp20": pool20, "mp52": pool52},
+            "note": ("union CAPPED to the matched volume, subsampled proportional to "
+                     "leakage-safe pool sizes; same multiset as the two phases"
+                     if budget_total else
+                     "FULL leakage-safe union (uncapped) — not volume-matched"),
             "token_proxy_mixed": _output_char_len(mixed),
         },
         "step_split_suggested": {
@@ -263,8 +292,12 @@ def main():
                          "README) so curriculum runs are comparable to the committed composition "
                          "results. Only feeds step_split_suggested in the manifest; the data CSVs "
                          "are independent of S.")
+    ap.add_argument("--budget_total", type=int, default=TOTAL_TRAIN,
+                    help="cap the union to this many crystals (default 24000, matching "
+                         "build_composition_datasets.py). 0 = no cap (full 51,534 union; "
+                         "NOT volume-matched).")
     args = ap.parse_args()
-    build(Path(args.src_dir), Path(args.out_dir), args.step_budget)
+    build(Path(args.src_dir), Path(args.out_dir), args.step_budget, args.budget_total)
 
 
 if __name__ == "__main__":

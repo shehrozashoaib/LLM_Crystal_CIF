@@ -16,8 +16,8 @@ RET_SEQS=10; MAX_NEW_TOKENS=3072
 TEST_CSV=Data/source/mp_52_test.csv.gz; TEST_N=8096
 GPU_MEM_UTIL=0.90; GEN_CHUNK=1000
 MP20_SUB=Data/curriculum/train_phase_mp20_sub2of7.csv.gz
-MP20_VAL=Data/curriculum/val_mp20.csv
-MP52_TRAIN=Data/curriculum/train_phase_mp52.csv; MP52_VAL=Data/curriculum/val_mp52.csv
+MP20_VAL=Data/curriculum/val_mp20.csv.gz
+MP52_TRAIN=Data/curriculum/train_phase_mp52.csv.gz; MP52_VAL=Data/curriculum/val_mp52.csv.gz
 PY=/venv/py312/bin/python; VLLM_PY=/venv/vllm/bin/python
 SFT=code_FineTune.py; GEN=generate_cifs_vllm.py; VAL=cif_structure_validator_mp52.py
 LOG_DIR=logs; GEN_ROOT=generated; mkdir -p "$LOG_DIR" "$GEN_ROOT"
