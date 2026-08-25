@@ -1,0 +1,5 @@
+run_a,run_b,n_paired,acc_a,acc_b,delta_pp,a_only_wins,b_only_wins,n_discordant,p_value,significant_at_0.05
+ratio_3to4,ratio_4to3,8096,27.62,28.06,-0.44,386,422,808,0.21818784249690526,no
+ratio_3to4,comp_mp20_00,8096,27.62,30.13,-2.51,315,518,833,2.0182570988798757e-12,yes
+ratio_1to7,comp_mp20_00,8096,30.45,30.13,0.32,425,399,824,0.3838115704936435,no
+ratio_1to7,ratio_4to3,8096,30.45,28.06,2.38,539,346,885,9.224345174073325e-11,yes

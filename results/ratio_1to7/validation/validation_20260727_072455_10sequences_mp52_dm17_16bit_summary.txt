@@ -1,0 +1,13 @@
+Validation Summary for generated/dm17/generated_cifs_dm17_10seq_maxtok3072_0_8095.csv
+Generated on: 2026-07-27 10:19:30
+Total samples: 8096
+Success rate: 30.4%
+
+================================================================================
+RMSE PANEL (StructureMatcher RMS, Å)
+================================================================================
+Strict matched RMS  (n=15478): mean=0.144  median=0.052  std=0.166  min=0.000  max=0.500
+Near-miss RMS (all valid gens, n=49046): mean=0.490  median=0.583  std=0.276
+  bins:  <0.5: 19069   0.5-1.0: 29779   1.0-1.5: 198   >=1.5: 0
+
+Detailed statistics saved in: experiments/dm17/validation_20260727_072455_mp52_16bit_10sequences_mp52_dm17/validation_20260727_072455_10sequences_mp52_dm17_16bit.csv

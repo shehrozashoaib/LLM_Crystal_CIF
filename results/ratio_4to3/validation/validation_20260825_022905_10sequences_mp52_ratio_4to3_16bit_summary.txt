@@ -1,0 +1,13 @@
+Validation Summary for generated/ratio_4to3/generated_cifs_ratio_4to3_10seq_maxtok3072_0_8095.csv
+Generated on: 2026-08-25 03:17:01
+Total samples: 8096
+Success rate: 28.1%
+
+================================================================================
+RMSE PANEL (StructureMatcher RMS, Å)
+================================================================================
+Strict matched RMS  (n=14001): mean=0.147  median=0.053  std=0.167  min=0.000  max=0.500
+Near-miss RMS (all valid gens, n=46200): mean=0.499  median=0.591  std=0.273
+  bins:  <0.5: 17350   0.5-1.0: 28716   1.0-1.5: 134   >=1.5: 0
+
+Detailed statistics saved in: experiments/ratio_4to3/validation_20260825_022905_mp52_16bit_10sequences_mp52_ratio_4to3/validation_20260825_022905_10sequences_mp52_ratio_4to3_16bit.csv

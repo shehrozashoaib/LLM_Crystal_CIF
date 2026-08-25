@@ -1,0 +1,167 @@
+{
+  "rule": "data_frac = step_frac = X/(X+Y); phases therefore run equal epochs",
+  "params": {
+    "total_train": 24000,
+    "total_steps": 4500,
+    "effective_batch": 32,
+    "master_seed": 3407,
+    "reference_epochs": 6.0
+  },
+  "leakage_filter": {
+    "mpts52_eval_ids": 13096,
+    "mp20_train_dropped": 2982,
+    "mp20_train_usable": 24154
+  },
+  "pools_available": {
+    "mp20": 24154,
+    "mp52": 27380
+  },
+  "val_sets": {
+    "mp20": "Data/curriculum/val_mp20.csv.gz",
+    "mp52": "Data/curriculum/val_mp52.csv.gz",
+    "note": "reused from the curriculum build; logging only, never gates training"
+  },
+  "runs": {
+    "1:7": {
+      "tag": "1to7",
+      "fraction_mp20": 0.125,
+      "data": {
+        "mp20": 3000,
+        "mp52": 21000,
+        "total": 24000
+      },
+      "steps": {
+        "mp20": 563,
+        "mp52": 3937,
+        "total": 4500
+      },
+      "epochs_per_phase": {
+        "mp20": 6.005,
+        "mp52": 5.999
+      },
+      "ids_hash": {
+        "mp20": "30d817ab55eea389",
+        "mp52": "dd7f36f3dc723615"
+      },
+      "files": {
+        "mp20": "Data/ratio_sweep/train_phase_mp20_1to7.csv.gz",
+        "mp52": "Data/ratio_sweep/train_phase_mp52_1to7.csv.gz"
+      }
+    },
+    "2:7": {
+      "tag": "2to7",
+      "fraction_mp20": 0.222222,
+      "data": {
+        "mp20": 5333,
+        "mp52": 18667,
+        "total": 24000
+      },
+      "steps": {
+        "mp20": 1000,
+        "mp52": 3500,
+        "total": 4500
+      },
+      "epochs_per_phase": {
+        "mp20": 6.0,
+        "mp52": 6.0
+      },
+      "ids_hash": {
+        "mp20": "be54e93525898121",
+        "mp52": "9f09a1ac1de8b7a3"
+      },
+      "files": {
+        "mp20": "Data/ratio_sweep/train_phase_mp20_2to7.csv.gz",
+        "mp52": "Data/ratio_sweep/train_phase_mp52_2to7.csv.gz"
+      }
+    },
+    "3:7": {
+      "tag": "3to7",
+      "fraction_mp20": 0.3,
+      "data": {
+        "mp20": 7200,
+        "mp52": 16800,
+        "total": 24000
+      },
+      "steps": {
+        "mp20": 1350,
+        "mp52": 3150,
+        "total": 4500
+      },
+      "epochs_per_phase": {
+        "mp20": 6.0,
+        "mp52": 6.0
+      },
+      "ids_hash": {
+        "mp20": "b58647eb87f53dfd",
+        "mp52": "39a192924e24a367"
+      },
+      "files": {
+        "mp20": "Data/ratio_sweep/train_phase_mp20_3to7.csv.gz",
+        "mp52": "Data/ratio_sweep/train_phase_mp52_3to7.csv.gz"
+      }
+    },
+    "3:4": {
+      "tag": "3to4",
+      "fraction_mp20": 0.428571,
+      "data": {
+        "mp20": 10286,
+        "mp52": 13714,
+        "total": 24000
+      },
+      "steps": {
+        "mp20": 1929,
+        "mp52": 2571,
+        "total": 4500
+      },
+      "epochs_per_phase": {
+        "mp20": 6.001,
+        "mp52": 5.999
+      },
+      "ids_hash": {
+        "mp20": "f42912f32928c9b3",
+        "mp52": "55f2dd98d68d1b49"
+      },
+      "files": {
+        "mp20": "Data/ratio_sweep/train_phase_mp20_3to4.csv.gz",
+        "mp52": "Data/ratio_sweep/train_phase_mp52_3to4.csv.gz"
+      }
+    },
+    "4:3": {
+      "tag": "4to3",
+      "fraction_mp20": 0.571429,
+      "data": {
+        "mp20": 13714,
+        "mp52": 10286,
+        "total": 24000
+      },
+      "steps": {
+        "mp20": 2571,
+        "mp52": 1929,
+        "total": 4500
+      },
+      "epochs_per_phase": {
+        "mp20": 5.999,
+        "mp52": 6.001
+      },
+      "ids_hash": {
+        "mp20": "355aaa31614e407b",
+        "mp52": "1594baf17931f738"
+      },
+      "files": {
+        "mp20": "Data/ratio_sweep/train_phase_mp20_4to3.csv.gz",
+        "mp52": "Data/ratio_sweep/train_phase_mp52_4to3.csv.gz"
+      }
+    }
+  },
+  "throughput": {
+    "micro_batch": 4,
+    "grad_accum": 8,
+    "effective_batch": 32,
+    "measured_sec_per_step_mpts52": 24.03,
+    "gpu": "RTX PRO 6000 Blackwell (sm_120)",
+    "note": "microbatch shape is a throughput knob only; effective batch held at 32"
+  },
+  "notes": {
+    "attention_backend": "3:4 phase 1 (MP-20, 1929 steps) ran on the stock xformers/SDPA path; phase 2 onward and all of 4:3 run with --arch gh200 (cuDNN SDPA pinned), matching the backend used by the committed GH200 results. Kernels differ only by floating-point associativity."
+  }
+}
