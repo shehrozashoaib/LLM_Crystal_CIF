@@ -155,15 +155,23 @@ data_mp20  = round(24000 * X/(X+Y))     steps_mp20 = round(4500 * X/(X+Y))
 Because the data fraction equals the step fraction, every phase runs **6.00 epochs** — identical
 per-crystal exposure to the composition sweep. Only *where the emphasis falls* changes.
 
-| Run | MP-20 : MPTS-52 | MP-20 share | steps (P1+P2) | best-of-10 | strict-RMS (Å) |
-|---|---|---:|---|---:|---:|
-| `comp_mp20_00` | 0 : 24,000 | 0% | 0 + 4500 | 30.1% | 0.050 |
-| `ratio_1to7` | 3,000 : 21,000 | 12.5% | 563 + 3937 | **30.4%** | 0.052 |
-| `ratio_2to7` | 5,333 : 18,667 | 22.2% | 1000 + 3500 | 30.2% | 0.053 |
-| `ratio_3to7` | 7,200 : 16,800 | 30.0% | 1350 + 3150 | 29.7% | 0.052 |
-| `ratio_3to4` | 10,286 : 13,714 | 42.9% | 1929 + 2571 | 27.6% | 0.050 |
-| `ratio_4to3` | 13,714 : 10,286 | 57.1% | 2571 + 1929 | 28.1% | 0.053 |
-| `comp_mp20_100` | 24,000 : 0 | 100% | 4500 + 0 | 26.6% | 0.039 |
+| Run | warm-up label `k` | MP-20 : MPTS-52 | MP-20 share | steps (P1+P2) | best-of-10 | strict-RMS |
+|---|---:|---|---:|---|---:|---:|
+| `comp_mp20_00` | 0 | 0 : 24,000 | 0% | 0 + 4500 | 30.1% | 0.050 |
+| `ratio_1to7` | 500 | 3,000 : 21,000 | 12.5% | 563 + 3937 | **30.4%** | 0.052 |
+| `ratio_2to7` | 1000 | 5,333 : 18,667 | 22.2% | 1000 + 3500 | 30.2% | 0.053 |
+| `ratio_3to7` | 1500 | 7,200 : 16,800 | 30.0% | 1350 + 3150 | 29.7% | 0.052 |
+| `ratio_3to4` | 2000 | 10,286 : 13,714 | 42.9% | 1929 + 2571 | 27.6% | 0.050 |
+| `ratio_4to3` | 2500 | 13,714 : 10,286 | 57.1% | 2571 + 1929 | 28.1% | 0.053 |
+| `comp_mp20_100` | 4500 | 24,000 : 0 | 100% | 4500 + 0 | 26.6% | 0.039 |
+
+The `k` column is the warm-up index used on the curriculum figure's x axis, rounded to the
+nearest 500 so the axis reads cleanly. **The `steps` column is what actually ran**, and the two
+differ for three of the five runs (563 vs 500, 1350 vs 1500, 1929 vs 2000, 2571 vs 2500), because
+the step split is set by the data ratio rather than chosen to land on a round number. Each run's
+`validation/*_summary.txt` now carries the same mapping so a reader who opens a single result file
+can tell which figure point it is. Quote the `steps` value in any text that describes the
+experiment, and reserve `k` for referring to a position on the figure.
 
 **Paired significance** (`results/ratio_sweep/mcnemar_ratio_sweep.csv`, McNemar exact, n = 8,096 paired):
 

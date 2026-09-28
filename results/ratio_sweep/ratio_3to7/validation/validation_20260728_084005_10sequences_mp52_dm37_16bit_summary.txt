@@ -11,3 +11,12 @@ Near-miss RMS (all valid gens, n=48649): mean=0.496  median=0.587  std=0.272
   bins:  <0.5: 18384   0.5-1.0: 30120   1.0-1.5: 145   >=1.5: 0
 
 Detailed statistics saved in: experiments/dm37/validation_20260728_084005_mp52_16bit_10sequences_mp52_dm37/validation_20260728_084005_10sequences_mp52_dm37_16bit.csv
+
+=== paper cross-reference ===
+Curriculum warm-up figure label : k = 1500
+MP-20 phase actually trained    : 1350 optimizer steps
+MPTS-52 phase actually trained  : 3150 optimizer steps  (total 4,500)
+Training data                   : 7,200 MP-20 : 16,800 MPTS-52 = 24,000 crystals
+Per-phase exposure              : 6.00 epochs (data fraction = step fraction)
+The figure label is rounded to the nearest 500 for the axis; the step counts
+above are what ran. Accuracy and RMS in this file are unchanged.
