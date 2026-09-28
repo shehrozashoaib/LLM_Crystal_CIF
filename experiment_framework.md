@@ -157,7 +157,7 @@ These are the controls that turn "we got a higher number" into "we proved why."
 | **Change** | Only the **order** (interleaved vs. sequential). |
 
 **Design — matched-budget schedule comparison** (on the leakage-safe MP-20 + MPTS-52 union, graded on the same held-out MPTS-52 crystals as the composition sweep):
-- **Budget `S` = 4,500** — chosen to MATCH the composition sweep (`run_composition_sweep.sh`, `--max_steps 4500`) so curriculum runs are directly comparable to the committed composition results. (The paper's combined run used 5,170 and its curriculum drifted to 7,156; we pin to our own 4,500 instead. Override with `MAX_STEPS`.)
+- **Budget `S` = 4,500** — chosen to MATCH the composition sweep (`training/run_composition_sweep.sh`, `--max_steps 4500`) so curriculum runs are directly comparable to the committed composition results. (The paper's combined run used 5,170 and its curriculum drifted to 7,156; we pin to our own 4,500 instead. Override with `MAX_STEPS`.)
 - **Mixed (reference):** union, shuffled, `S` steps. Opt-in only here — the composition sweep already trains the shuffled union, so the curriculum sweep defaults to `forward reverse`.
 - **Curriculum-forward:** MP-20 then MPTS-52, with `S₁ + S₂ = S`. Split proportional to pool crystal count (MP-20 = 24,154 / MPTS-52 = 27,380) → **2,109 + 2,391 = 4,500**. **Disable early stopping**; pin `max_steps`.
 - **Curriculum-reverse:** MPTS-52 then MP-20, same per-pool step counts (**2,391 + 2,109**).
@@ -185,7 +185,7 @@ with a "data-matched" control at 31.2%.
 > **Consequences.** (a) The k=1000 peak of 32.1% cannot be quoted as a matched-budget result.
 > (b) The "diversity, not repetition" conclusion rested on the 31.2% control and is unsupported at
 > matched volume — §4.3.2 measures the properly matched 2:7 point at **30.2%**.
-> (c) `build_curriculum_datasets.py` now takes `--budget_total` (default 24000) and reproduces the
+> (c) `datasets/build_curriculum_datasets.py` now takes `--budget_total` (default 24000) and reproduces the
 > committed `Data/curriculum/` files exactly, so the capped rerun is possible.
 >
 > **Still open:** §4.3.2's 2:7 point shares k=1000's step split but also shrinks the MP-20 *pool*, so
@@ -240,9 +240,9 @@ for both phases: **every phase runs exactly 6.00 epochs**, identical to a single
 run at 24,000 crystals / 4,500 steps. Volume, total steps, and per-crystal exposure are therefore
 *all* held fixed, and the single free variable is where the emphasis falls.
 
-Built by `build_ratio_datasets.py` (pools shuffled once under MASTER_SEED=3407 then truncated, so a
+Built by `datasets/build_ratio_datasets.py` (pools shuffled once under MASTER_SEED=3407 then truncated, so a
 smaller X's set is a strict subset of a larger X's — ratios differ only by what is *added*). Leakage
-assertions run at build time. Orchestrated by `run_ratio_sweep.sh`.
+assertions run at build time. Orchestrated by `training/run_ratio_sweep.sh`.
 
 **Results** (full 8,096 MPTS-52 test set):
 
@@ -256,7 +256,7 @@ assertions run at build time. Orchestrated by `run_ratio_sweep.sh`.
 | `ratio_4to3` | 13,714 : 10,286 | 57.1% | 2571+1929 | 28.1% | 0.053 |
 | `comp_mp20_100` | 24,000 : 0 | 100% | 4500+0 | 26.6% | 0.039 |
 
-**Paired McNemar** (`analyze_ratio_sweep.py` → `results/mcnemar_ratio_sweep.csv`, n=8,096):
+**Paired McNemar** (`evaluation/analyze_ratio_sweep.py` → `results/mcnemar_ratio_sweep.csv`, n=8,096):
 
 | comparison | Δ | p | verdict |
 |---|---:|---:|---|
@@ -355,7 +355,7 @@ All runs: same frozen 1000-sample MPTS-52 test set, ≥3 seeds, report the full 
 
 ### Open TODOs
 - [ ] **Rerun the k-sweep on the capped 24k pools** (`Data/curriculum/`, now regenerable via
-      `build_curriculum_datasets.py --budget_total 24000`). k=1000's 32.1% is the highest number in
+      `datasets/build_curriculum_datasets.py --budget_total 24000`). k=1000's 32.1% is the highest number in
       the study and the only one never reproduced at matched volume; §4.3.2's 2:7 point (30.2%)
       shares its step split but not its pool size, so the "full pool, few steps" hypothesis is still
       untested. **Highest-value remaining run.**

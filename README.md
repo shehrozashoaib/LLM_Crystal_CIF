@@ -13,42 +13,55 @@ This repo is the code + data + results for a paper resubmission. The experimenta
 
 ## What's here
 
+Every script is launched **from the repository root** (`bash training/run_ratio_sweep.sh 2:7`); the launchers resolve their own location and `cd` back to the root, so `Data/` and `results/` paths resolve the same way they always did.
+
 ```
 .
-├── experiment_framework.md         # the experiment plan (with completion status)
 ├── README.md                       # this file
+├── experiment_framework.md         # the experiment plan (with completion status)
 │
-│   ── dataset builders ──
-├── build_composition_datasets.py   # fixed-volume, leakage-free composition sweep (24,000 crystals)
-├── build_curriculum_datasets.py    # curriculum phases; --budget_total caps the union to 24,000
-├── build_ratio_datasets.py         # target-emphasis diagonal: data ratio == step ratio
+├── datasets/                          # dataset builders (leakage filter + volume assertions)
+│   ├── build_composition_datasets.py  # fixed-volume composition sweep (24,000 crystals)
+│   ├── build_curriculum_datasets.py   # curriculum phases; --budget_total caps the union to 24,000
+│   └── build_ratio_datasets.py        # target-emphasis diagonal: data ratio == step ratio
 │
-│   ── pipeline ──
-├── code_FineTune.py                # SFT trainer (Unsloth + LoRA), CLI-driven, pinned steps
-├── generate_cifs_vllm.py           # fast inference with vLLM (resumable, shard-based)
-├── generate_cifs_qwen_chat.py      # HuggingFace generate() fallback (same I/O contract)
-├── cif_structure_validator_mp52.py # grades generated CIFs (best-of-N match + RMSE panel)
-├── grpo_from_repair_mix_sft_target_aligned_v3.py  # GRPO trainer (StructureMatcher reward)
-├── grpo_crystext_reward.py         # GRPO trainer with CrysText's reward (see below)
-├── test_crystext_reward_parity.py  # proves that reward == CrysText's, rung for rung
-├── track_crystext_reward.py        # reward-signal record: tiers, parse rate, group variance
-├── setup_crystext_env.sh           # builds /venv/py312 on x86_64 + Blackwell
-├── run_crystext_grpo.sh            # crash-resume launcher for the CrysText-reward run
-├── run_eval_crystext.sh            # full-test eval: vLLM generate → pymatgen validate
-├── crystext_hf_upload.py           # pushes the CrysText-run adapter to the HF model repo
+├── training/                          # trainers and sweep launchers
+│   ├── code_FineTune.py               # SFT trainer (Unsloth + LoRA), CLI-driven, pinned steps
+│   ├── grpo_r32_from3000_discrete.py  # GRPO, discrete match-tier reward
+│   ├── grpo_r32_from3000_continuous.py # GRPO, RMS-interpolated reward
+│   ├── grpo_crystext_reward.py        # GRPO with CrysText's reward (see below)
+│   ├── grpo_from_repair_mix_sft_target_aligned_v3.py  # earlier GRPO trainer
+│   ├── run_composition_sweep.sh       # composition ratios
+│   ├── run_curriculum_sweep.sh        # forward / reverse curricula + forgetting probe
+│   ├── run_phase_split_sweep.sh       # switch-point (k) sweep, uncapped pools
+│   ├── run_ratio_sweep.sh             # target-emphasis diagonal, 24k-matched
+│   ├── run_rank_sweep.sh              # LoRA rank sweep
+│   ├── run_datamatched.sh             # retired 2:7 control (superseded by ratio_2to7)
+│   ├── run_crystext_grpo.sh           # crash-resume launcher for the CrysText-reward run
+│   └── grpo_run.sh · grpo_continuous_all.sh · grpo_delayed_launch.sh · datamatch_chain.sh
 │
-│   ── orchestrators ──
-├── run_composition_sweep.sh        # composition ratios
-├── run_curriculum_sweep.sh         # forward / reverse curricula + forgetting probe
-├── run_phase_split_sweep.sh        # §4.3.1 switch-point (k) sweep
-├── run_ratio_sweep.sh              # §4.3.2 target-emphasis diagonal
-├── run_rank_sweep.sh               # LoRA rank sweep
-├── run_with_retry.sh               # resumable-sweep watchdog
-├── stall_guard.sh                  # kills a wedged GPU stage (see Hardware notes)
+├── evaluation/                        # generation, grading and analysis
+│   ├── generate_cifs_vllm.py          # fast inference with vLLM (resumable, shard-based)
+│   ├── generate_cifs_qwen_chat.py     # HuggingFace generate() fallback (same I/O contract)
+│   ├── cif_structure_validator_mp52.py # grades generated CIFs (best-of-N match + RMS panel)
+│   ├── run_eval_crystext.sh           # full-test eval: vLLM generate -> pymatgen validate
+│   ├── grpo_eval_chain.sh             # eval chain for the GRPO checkpoints
+│   ├── analyze_ratio_sweep.py         # paired McNemar over the frozen test set
+│   ├── analyze_*.py                   # SFT / GRPO run + per-space-group + step analyses
+│   ├── test_crystext_reward_parity.py # proves that reward == CrysText's, rung for rung
+│   ├── track_crystext_reward.py       # reward-signal record: tiers, parse rate, group variance
+│   └── collect_timings.py             # wall-clock per run
 │
-│   ── analysis ──
-├── analyze_ratio_sweep.py          # paired McNemar over the frozen test set
-├── analyze_*.py                    # SFT / GRPO run + per-space-group + step analyses
+├── env/                               # environment setup and long-run babysitting
+│   ├── setup_py312.sh                 # training + validation venv
+│   ├── setup_vllm.sh                  # inference venv
+│   ├── setup_crystext_env.sh          # training env for x86_64 + Blackwell
+│   ├── run_with_retry.sh              # resumable-sweep watchdog
+│   ├── stall_guard.sh                 # kills a wedged GPU stage (see Hardware notes)
+│   └── README_GH200_SETUP.md          # GH200 / sm_90 runbook and attention-backend fix
+│
+├── release/                           # HuggingFace pushes
+│   └── upload_to_hf.py · crystext_hf_upload.py · grpo_hf_upload.py · grpo_cont_hf_upload.py
 │
 ├── Data/
 │   ├── source/                     # original MP-20 / MPTS-52 train/val/test splits (gzipped)
@@ -88,7 +101,7 @@ Two isolated Python envs (inference pins different torch/transformers than train
 | **vllm**  | `/venv/vllm`  | inference/generation | vllm 0.22, torch 2.11+cu130 |
 
 vLLM *cannot* train; it is inference only. Training stays on Unsloth.
-Build them with `setup_py312.sh` / `setup_vllm.sh`.
+Build them with `env/setup_py312.sh` / `env/setup_vllm.sh`.
 
 ---
 
@@ -194,39 +207,43 @@ This independently reproduces the composition sweep's conclusion through a diffe
 matched volume, exposure *and* steps, **there is no MP-20 mixture that beats training on the target
 domain alone.**
 
-### 3. Curriculum (§4.3) — COMPLETE †
+### 3. Curriculum at uncapped pools — SUPERSEDED †
 
-Same leakage-safe pools trained in two orders at matched 4,500 steps (split ∝ pool size).
+These are the runs the earlier draft reported. They are kept because their result folders are
+published in `results/curriculum_order/` and `results/phase_split/`, and a reader who opens one
+needs to know what is wrong with it. **Every run in this section trained on the uncapped 51,534-crystal
+union, not the 24,000 of the baseline it is compared against**, so none of it is a matched-budget
+result. The matched replacement is the diagonal in section 2 above.
 
-| Condition | MPTS-52 best-of-10 | strict-RMS (Å) | MP-20 after P1 | MP-20 after P2 | MP-20 Δ |
+**Order (`curr_fwd` / `curr_rev`).** Same pools, two orders, matched 4,500 steps, split proportional
+to pool size.
+
+| Condition | MPTS-52 best-of-10 | strict-RMS | MP-20 after P1 | MP-20 after P2 | MP-20 Δ |
 |---|---:|---:|---:|---:|---:|
-| **Forward** (MP-20 → MPTS-52) † | 30.7% | 0.049 | 65.7% | 60.4% | **−5.3 pp** (forgetting) |
-| **Reverse** (MPTS-52 → MP-20) † | 27.5% | 0.044 | 53.5% | 69.8% | **+16.3 pp** (recency) |
+| **Forward** (MP-20 → MPTS-52) † | 30.7% | 0.049 | 65.7% | 60.4% | **−5.3 pp** |
+| **Reverse** (MPTS-52 → MP-20) † | 27.5% | 0.044 | 53.5% | 69.8% | **+16.3 pp** |
 
-**Finding — recency dominates.** Each order is best at whatever it trained *last*. Forward ends on
-the eval distribution and wins MPTS-52 by +3.2 pp; reverse reaches the highest MP-20 accuracy.
-Sequential MPTS-52 training costs only ~5 pp of MP-20 (modest forgetting).
+Each order is best at whatever it trained *last*. The two MP-20 deltas are not the same quantity:
+the forward run loses ground on a domain it has stopped training, which is forgetting, while the
+reverse run gains on a domain it has just started training, which is not.
 
-† **These two runs are not volume-matched** — see [Corrections & provenance](#corrections--provenance).
+**Switch point (`psplit_*`).** Fix the 4,500-step budget, vary the MP-20→MPTS-52 switch point `k`.
 
-### 4. Curriculum phase-split (§4.3.1) — COMPLETE †
-
-Fix the 4,500-step budget; vary the MP-20→MPTS-52 switch point `k`.
-
-| k (MP-20 steps → then MPTS-52) | best-of-10 | strict-RMS (Å) |
+| k (MP-20 steps → then MPTS-52) | best-of-10 | strict-RMS |
 |---:|---:|---:|
-| 0 (pure MPTS-52) | 30.1% | 0.050 |
+| 0 (pure MPTS-52, 24k) | 30.1% | 0.050 |
 | **1000** † | **32.1%** | 0.049 |
 | 2109 (forward) † | 30.7% | 0.049 |
 | 3000 † | 29.9% | 0.054 |
-| 4500 (pure MP-20) | 26.6% | 0.039 |
+| 4500 (pure MP-20, 24k) | 26.6% | 0.039 |
 
-† `k = 1000/2109/3000` and the retired `psplit_datamatch` control all trained on **larger pools than
-the 24,000-crystal baseline they are compared against**, so the peak at k=1000 is confounded with
-volume. See [Corrections & provenance](#corrections--provenance). **The 32.1% result has not been
-reproduced at matched volume and should not be quoted as a matched-budget win.**
+† `k = 1000/2109/3000` and the retired `psplit_datamatch` control trained on larger pools than the
+24,000-crystal endpoints they sit between, so the peak at k=1000 is confounded with volume.
+**The 32.1% has never been reproduced at matched volume and must not be quoted as a matched-budget
+win.** At matched volume the same step split gives 30.2% (`ratio_2to7`), which is +0.02 pp over the
+baseline. See [Corrections & provenance](#corrections--provenance).
 
-### 5. LoRA rank sweep — COMPLETE (2 seeds)
+### 4. LoRA rank sweep — COMPLETE (2 seeds)
 
 Pure MPTS-52, matched 4,500 steps, α = 2r; only rank changes. The % is the fraction of the model
 optimized (trainable / (base 7.62 B + LoRA)).
@@ -244,7 +261,7 @@ climbing — so rank is *not* the "weakest lever" the paper claimed, at least to
 **seed spread is only 0.0–0.5 pp**, far below the inter-rank gaps. Matches also get **tighter**
 (0.053 → 0.043 Å).
 
-### 6. GRPO (RL, §4.4) — COMPLETE: negative
+### 5. GRPO (RL, §4.4) — COMPLETE: negative
 
 Forked from the r=32 SFT checkpoint-3000, 1,500 GRPO steps → 4,500 total (matched to continued-SFT).
 
@@ -281,7 +298,7 @@ Details, traces and the surviving adapter: the [CrysText-reward section](#grpo-w
 
 ## GRPO with the CrysText reward (external-reward baseline)
 
-`grpo_crystext_reward.py` runs our GRPO setup — Qwen2.5-7B-Instruct + Unsloth LoRA, val-set
+`training/grpo_crystext_reward.py` runs our GRPO setup — Qwen2.5-7B-Instruct + Unsloth LoRA, val-set
 monitor, best-model tracking, JSONL reward traces — with the **reward function from
 [truptimohanty/CrysText](https://github.com/truptimohanty/CrysText/blob/main/grpo_training.py)**
 instead of ours. This isolates the reward design: same model, same data, same optimiser,
@@ -301,7 +318,7 @@ different scoring rule.
 
 Their tightest rung is exactly our `_MATCHER_VAL`, so `match_tier` in the traces keeps this
 repo's `val / med / loose / no_match / not_parseable` names and the files drop straight into
-`analyze_grpo_reward_traces.py`.
+`evaluation/analyze_grpo_reward_traces.py`.
 
 **Ours, kept unchanged so runs stay comparable:** Qwen2.5 chat-template prompting (CrysText
 used an Alpaca string on a Mistral base), tokenizer handling, `Data/source/mp_52_*.csv.gz`,
@@ -371,29 +388,29 @@ checkpoints that were evaluated no longer exist as weights, see
 ### Run it
 
 ```bash
-bash setup_crystext_env.sh                      # -> /venv/py312 (torch cu128, trl 0.24, unsloth, pymatgen)
+bash env/setup_crystext_env.sh                      # -> /venv/py312 (torch cu128, trl 0.24, unsloth, pymatgen)
 
 # prove the reward is bit-identical to CrysText's before spending GPU-hours
 git clone https://github.com/truptimohanty/CrysText ../CrysText
-/venv/py312/bin/python test_crystext_reward_parity.py --n 10
+/venv/py312/bin/python evaluation/test_crystext_reward_parity.py --n 10
 
 # 2-step wiring check on a small model
 GRPO_SMOKE=1 GRPO_START_MODEL=Qwen/Qwen2.5-0.5B-Instruct \
-  /venv/py312/bin/python grpo_crystext_reward.py
+  /venv/py312/bin/python training/grpo_crystext_reward.py
 
-# the real run (crash-resume loop, same pattern as grpo_run.sh)
+# the real run (crash-resume loop, same pattern as training/grpo_run.sh)
 GRPO_START_MODEL=experiments/rank_r32_s3407/checkpoints/checkpoint-3000 \
-  bash run_crystext_grpo.sh
+  bash training/run_crystext_grpo.sh
 
 # reward-signal record at any point during/after training
-/venv/py312/bin/python track_crystext_reward.py --window 50 --csv reward_record.csv
+/venv/py312/bin/python evaluation/track_crystext_reward.py --window 50 --csv reward_record.csv
 
 # full 8,096-material test eval: vLLM generate -> pymatgen validate
-bash setup_vllm.sh                              # -> /venv/vllm
-bash run_eval_crystext.sh best                  # SYSTEM_PROMPT=sft for comparability with results/
+bash env/setup_vllm.sh                              # -> /venv/vllm
+bash evaluation/run_eval_crystext.sh best                  # SYSTEM_PROMPT=sft for comparability with results/
 ```
 
-`test_crystext_reward_parity.py` lifts both scorers out of their source files (neither is
+`evaluation/test_crystext_reward_parity.py` lifts both scorers out of their source files (neither is
 importable — both build a model at import time) and runs them head-to-head on real MPTS-52
 CIFs plus mutations that span every rung: **180/180 identical, rewards spanning
 `{-2.0, 1.0, 1.5, 1.75, 2.0, 2.5, 3.0}`**. Note that rigid translation and uniform volume
@@ -458,7 +475,7 @@ steps" from "small pool, few steps." Settling that needs a k=1000 run on the cap
 
 ### 3. The curriculum builder could not reproduce its own data
 
-`build_curriculum_datasets.py` generated the full 51,534-crystal union while `Data/curriculum/`
+`datasets/build_curriculum_datasets.py` generated the full 51,534-crystal union while `Data/curriculum/`
 shipped the 24k-capped files — code and data disagreed, and the capping script was never committed.
 Fixed: `--budget_total` (default **24000**) caps the union, subsampled proportional to the
 leakage-safe pools. Verified to regenerate the committed files exactly (11,249 / 12,751 / 24,000).
@@ -466,11 +483,11 @@ Pass `--budget_total 0` to reproduce the older uncapped datasets.
 
 ### 4. Every GRPO run was evaluated under a prompt it was not trained on
 
-`code_FineTune.py` (SFT) and both generation scripts use the system message
+`training/code_FineTune.py` (SFT) and both generation scripts use the system message
 `"You are an expert in materials science and crystallography."` — while **all three** `grpo_*.py`
 trainers append `" Return only one complete CIF file and nothing else."` So `grpo_r32_from3000_discrete`,
 `grpo_r32_from3000_continuous` and the CrysText run were all *optimised* on one prompt and *scored*
-on another. `generate_cifs_vllm.py` now takes `--system_prompt {sft,grpo}`, defaulting to `sft` so
+on another. `evaluation/generate_cifs_vllm.py` now takes `--system_prompt {sft,grpo}`, defaulting to `sft` so
 every number already in `results/` is unchanged; the CrysText-run evals used `grpo`. Re-running an
 older GRPO eval with `--system_prompt grpo` would quantify what the mismatch cost.
 
@@ -482,12 +499,12 @@ callback — so on resuming the CrysText run from step 1150, the first validatio
 The weights of both evaluated checkpoints (steps 150 and 1150) are therefore gone; their
 predictions and validation panels are published in full under `results/grpo/grpo_crystext_reward/`, so
 the reported numbers remain verifiable, but those adapters cannot be re-run. Fixed in
-`grpo_crystext_reward.py`: the callback restores the previous best from `best_info.json`, so
+`training/grpo_crystext_reward.py`: the callback restores the previous best from `best_info.json`, so
 `best_model/` can only ever improve. **Port that fix before resuming any other `grpo_*.py` trainer.**
 
 ### Provenance of the diagonal runs
 
-`ratio_1to7`, `ratio_2to7`, `ratio_3to7` were produced before `build_ratio_datasets.py` was
+`ratio_1to7`, `ratio_2to7`, `ratio_3to7` were produced before `datasets/build_ratio_datasets.py` was
 committed. The builder reproduces their splits **exactly** (3,000/21,000 · 5,333/18,667 ·
 7,200/16,800 and the matching step splits), so the design is identical — but their original builder
 was not preserved, so the specific crystals sampled may differ from a fresh rebuild.
@@ -506,17 +523,17 @@ segment. See `results/training_times.csv` for the runs where the figure is meani
 
 ```bash
 # 1. build datasets (writes Data/<sweep>/ + a manifest with leakage + volume assertions)
-/venv/py312/bin/python build_composition_datasets.py
-/venv/py312/bin/python build_curriculum_datasets.py            # --budget_total 24000 by default
-/venv/py312/bin/python build_ratio_datasets.py 1:7 2:7 3:7 3:4 4:3
+/venv/py312/bin/python datasets/build_composition_datasets.py
+/venv/py312/bin/python datasets/build_curriculum_datasets.py            # --budget_total 24000 by default
+/venv/py312/bin/python datasets/build_ratio_datasets.py 1:7 2:7 3:7 3:4 4:3
 
 # 2. run any sweep: train -> generate -> validate, resumable end to end
-./run_composition_sweep.sh 00 25 50 75 100
-./run_ratio_sweep.sh 3:4 4:3
-./run_rank_sweep.sh 16 32 64 128
+training/run_composition_sweep.sh 00 25 50 75 100
+training/run_ratio_sweep.sh 3:4 4:3
+training/run_rank_sweep.sh 16 32 64 128
 
 # 3. paired significance over the frozen test set
-/venv/py312/bin/python analyze_ratio_sweep.py
+/venv/py312/bin/python evaluation/analyze_ratio_sweep.py
 ```
 
 Every stage is skipped if its output already exists, so a killed sweep resumes where it stopped.
@@ -535,7 +552,7 @@ Results were produced on two machines. Nothing about the science depends on whic
 
 **NVIDIA GH200 (Hopper sm_90, aarch64)** — composition, rank, curriculum, phase-split, GRPO, and the
 1:7/2:7/3:7 diagonal points. Needs a specific attention-backend fix to train without OOM; read
-**[`README_GH200_SETUP.md`](README_GH200_SETUP.md)** before installing. `code_FineTune.py` selects
+**[`env/README_GH200_SETUP.md`](env/README_GH200_SETUP.md)** before installing. `training/code_FineTune.py` selects
 the path via `--arch {auto,a100,gh200}`.
 
 **NVIDIA RTX PRO 6000 Blackwell (sm_120, x86_64)** — `ratio_3to4`, `ratio_4to3`. Caveats found there:
@@ -551,10 +568,10 @@ the path via `--arch {auto,a100,gh200}`.
   (unsloth+xformers, unsloth+cuDNN, and vLLM on a different torch/CUDA build) — most consistent with
   a driver/hardware issue rather than a library bug. The pipeline is built to survive them:
   `--save_steps` keeps checkpoints tighter than the mean time-to-failure, generation resumes per
-  shard, and `stall_guard.sh` kills a stage whose GPU sits idle (a segfaulting vLLM `EngineCore` can
+  shard, and `env/stall_guard.sh` kills a stage whose GPU sits idle (a segfaulting vLLM `EngineCore` can
   leave the parent process blocked forever, which a plain exit-code watchdog will never notice).
 - For long unattended runs, drive the sweep from a process supervisor rather than `nohup` — see the
-  `run_with_retry.sh` + `stall_guard.sh` pairing.
+  `env/run_with_retry.sh` + `env/stall_guard.sh` pairing.
 
 ---
 
