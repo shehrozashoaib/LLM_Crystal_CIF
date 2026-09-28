@@ -80,9 +80,11 @@ def resolve_base_model(model_dir: str, override: str) -> str:
 
 
 SYSTEM_PROMPTS = {
-    # training/code_FineTune.py (SFT) and every eval in results/
+    # The project prompt: training/code_FineTune.py, every grpo_*.py trainer and
+    # every evaluation use this one string.
     "sft": "You are an expert in materials science and crystallography.",
-    # grpo_*.py trainers
+    # Legacy variant, retained only so the GRPO runs already recorded in results/
+    # can be reproduced exactly as they were scored. No current trainer uses it.
     "grpo": ("You are an expert in materials science and crystallography. "
              "Return only one complete CIF file and nothing else."),
 }

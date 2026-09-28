@@ -508,8 +508,7 @@ def make_prompt_text(instruction: str, inp: str) -> str:
     user_content = (f"{instruction}\n\n{inp}" if (inp is not None and str(inp).strip())
                     else instruction)
     messages = [
-        {"role": "system", "content": "You are an expert in materials science and crystallography. "
-                                       "Return only one complete CIF file and nothing else."},
+        {"role": "system", "content": "You are an expert in materials science and crystallography."},
         {"role": "user", "content": user_content},
     ]
     return tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
