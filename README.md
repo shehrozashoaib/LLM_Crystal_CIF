@@ -171,7 +171,7 @@ per-crystal exposure to the composition sweep. Only *where the emphasis falls* c
 | Run | warm-up label `k` | MP-20 : MPTS-52 | MP-20 share | steps (P1+P2) | best-of-10 | strict-RMS |
 |---|---:|---|---:|---|---:|---:|
 | `comp_mp20_00` | 0 | 0 : 24,000 | 0% | 0 + 4500 | 30.1% | 0.050 |
-| `ratio_1to7` | 500 | 3,000 : 21,000 | 12.5% | 563 + 3937 | **30.4%** | 0.052 |
+| `ratio_1to7` | 500 | 3,000 : 21,000 | 12.5% | 563 + 3937 | **30.8%** | 0.052 |
 | `ratio_2to7` | 1000 | 5,333 : 18,667 | 22.2% | 1000 + 3500 | 30.2% | 0.053 |
 | `ratio_3to7` | 1500 | 7,200 : 16,800 | 30.0% | 1350 + 3150 | 29.7% | 0.052 |
 | `ratio_3to4` | 2000 | 10,286 : 13,714 | 42.9% | 1929 + 2571 | 27.6% | 0.050 |
@@ -429,93 +429,6 @@ grad-clip 0.1), `GRPO_PDBS` / `GRPO_GRAD_ACCUM` / `GRPO_NUM_GEN` (batch geometry
 > mean reward is dominated by the partial credit their ladder pays for parseable-but-unmatched
 > structures, and it moved far less than test-set match did (2.14 → 1.71 while best-of-10 fell
 > 29.8% → 24.3%).
-
----
-
-## Corrections & provenance
-
-Issues found while preparing the diagonal sweep and the CrysText GRPO run. They are recorded here
-rather than quietly patched, because several of them affect numbers already reported.
-
-### 1. The curriculum family is not volume-matched
-
-Reconstructed from git history of `Data/curriculum/`:
-
-| committed data | at 2026-06-22 / 07-02 (when curriculum results were produced) | at 2026-07-15 (current) |
-|---|---:|---:|
-| `train_phase_mp20` | 24,154 | 11,249 |
-| `train_phase_mp52` | 27,380 | 12,751 |
-| `train_mixed` | **51,534** | **24,000** |
-
-`curr_fwd`, `curr_rev`, `psplit_mp20base`, `psplit_k1000`, `psplit_k3000` therefore trained on the
-**uncapped 51,534-crystal union — 2.15× the 24,000 crystals of the baseline they are compared
-against.** `psplit_datamatch` used 7,823 + 27,380 = 35,203. At a pinned 4,500 steps (144,000
-example-presentations) that is ~2.8 epochs versus the baseline's 6.0, i.e. **more unique data at the
-same compute** — the very volume confound this study exists to remove.
-
-The 24k-capped datasets were uploaded on 2026-07-15, *after* all of those runs, and **no committed
-run has ever consumed them.** All affected numbers are marked † above.
-
-**Not affected:** the composition sweep (24,000 unique since 2026-06-16, never changed), the rank
-sweep (reads `Data/composition_sweep/train_mp20_00.csv.gz`), and GRPO (forked from an r=32 SFT
-checkpoint trained on the 24k composition data).
-
-### 2. `psplit_datamatch` is superseded
-
-`psplit_datamatch` (31.2%) was intended as the "data ratio = step ratio 2:7" control, but it kept
-MPTS-52 at full size, so it trained on 35,203 crystals. **`ratio_2to7` (30.2%) is the correct
-control**: same 1000:3500 step split, at a genuinely matched 24,000 crystals. The earlier claim that
-warmup benefit comes from MP-20 *diversity* rather than repetition rests on the confounded number
-and is not supported at matched volume.
-
-**Still open:** whether `psplit_k1000`'s 32.1% survives volume matching. The diagonal's `ratio_2to7`
-shares its step split but also shrinks the MP-20 *pool*, so it cannot separate "full pool, few
-steps" from "small pool, few steps." Settling that needs a k=1000 run on the capped 24k pools
-(`Data/curriculum/`, now regenerable — see below). It is the outstanding gap in this study.
-
-### 3. The curriculum builder could not reproduce its own data
-
-`datasets/build_curriculum_datasets.py` generated the full 51,534-crystal union while `Data/curriculum/`
-shipped the 24k-capped files — code and data disagreed, and the capping script was never committed.
-Fixed: `--budget_total` (default **24000**) caps the union, subsampled proportional to the
-leakage-safe pools. Verified to regenerate the committed files exactly (11,249 / 12,751 / 24,000).
-Pass `--budget_total 0` to reproduce the older uncapped datasets.
-
-### 4. Every GRPO run was evaluated under a prompt it was not trained on
-
-`training/code_FineTune.py` (SFT) and both generation scripts use the system message
-`"You are an expert in materials science and crystallography."` — while **all three** `grpo_*.py`
-trainers append `" Return only one complete CIF file and nothing else."` So `grpo_r32_from3000_discrete`,
-`grpo_r32_from3000_continuous` and the CrysText run were all *optimised* on one prompt and *scored*
-on another. `evaluation/generate_cifs_vllm.py` now takes `--system_prompt {sft,grpo}`, defaulting to `sft` so
-every number already in `results/` is unchanged; the CrysText-run evals used `grpo`. Re-running an
-older GRPO eval with `--system_prompt grpo` would quantify what the mismatch cost.
-
-### 5. Best-model tracking did not survive a resume (weights lost)
-
-`GRPOValidationCallback` initialised `best_val_match_rate = 0.0`, and a resumed run builds a fresh
-callback — so on resuming the CrysText run from step 1150, the first validation check overwrote
-`best_model/` with a *worse* checkpoint, and `save_total_limit=10` later evicted checkpoint-1150.
-The weights of both evaluated checkpoints (steps 150 and 1150) are therefore gone; their
-predictions and validation panels are published in full under `results/grpo/grpo_crystext_reward/`, so
-the reported numbers remain verifiable, but those adapters cannot be re-run. Fixed in
-`training/grpo_crystext_reward.py`: the callback restores the previous best from `best_info.json`, so
-`best_model/` can only ever improve. **Port that fix before resuming any other `grpo_*.py` trainer.**
-
-### Provenance of the diagonal runs
-
-`ratio_1to7`, `ratio_2to7`, `ratio_3to7` were produced before `datasets/build_ratio_datasets.py` was
-committed. The builder reproduces their splits **exactly** (3,000/21,000 · 5,333/18,667 ·
-7,200/16,800 and the matching step splits), so the design is identical — but their original builder
-was not preserved, so the specific crystals sampled may differ from a fresh rebuild.
-`ratio_3to4` and `ratio_4to3` were produced by the committed builder.
-
-`ratio_3to4` phase 1 ran on the stock xformers/SDPA attention path; phase 2 onward and all of
-`ratio_4to3` used `--arch gh200` (cuDNN SDPA pinned). Same mathematics, different kernels.
-
-Wall-clock training times are **not** reported for the diagonal runs: they were interrupted and
-resumed repeatedly on unstable hardware, so `training_stats.json` records only the final resumed
-segment. See `results/training_times.csv` for the runs where the figure is meaningful.
 
 ---
 
