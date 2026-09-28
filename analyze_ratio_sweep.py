@@ -14,7 +14,7 @@ validation `*_16bit.csv`.
 Usage:
     python analyze_ratio_sweep.py                          # default comparisons
     python analyze_ratio_sweep.py --pairs A:B C:D          # explicit pairs
-    python analyze_ratio_sweep.py --out results/mcnemar_ratio_sweep.csv
+    python analyze_ratio_sweep.py --out results/ratio_sweep/mcnemar_ratio_sweep.csv
 """
 from __future__ import annotations
 
@@ -45,12 +45,19 @@ def find_16bit(run: str, results_dir: Path) -> Path:
     `per_material_results.csv.gz`, later sweeps wrote `*_16bit.csv`. Both carry
     the same material_id + Match_generation_* schema.
     """
-    vdir = results_dir / run / "validation"
-    for pattern in ("*_16bit.csv", "per_material_results.csv.gz", "*_16bit.csv.gz"):
-        hits = sorted(glob.glob(str(vdir / pattern)))
-        if hits:
-            return Path(hits[0])
-    sys.exit(f"[FATAL] no per-material grader CSV under {vdir}")
+    # Runs live under a per-sweep subfolder (results/<sweep>/<run>/validation),
+    # and a few GRPO runs nest one level deeper (.../<run>/<checkpoint>/validation),
+    # so the validation directory is located by search rather than a fixed path.
+    vdirs = sorted(d for d in results_dir.rglob("validation")
+                   if run in (d.parent.name, d.parent.parent.name))
+    if not vdirs:
+        sys.exit(f"[FATAL] no validation directory for run {run!r} under {results_dir}")
+    for vdir in vdirs:
+        for pattern in ("*_16bit.csv", "per_material_results.csv.gz", "*_16bit.csv.gz"):
+            hits = sorted(glob.glob(str(vdir / pattern)))
+            if hits:
+                return Path(hits[0])
+    sys.exit(f"[FATAL] no per-material grader CSV under {vdirs[0]}")
 
 
 def _open(path: Path):
@@ -104,7 +111,7 @@ def main() -> None:
     ap.add_argument("--results_dir", default="results")
     ap.add_argument("--pairs", nargs="*", default=None,
                     help="comparisons as RUN_A:RUN_B (default: the sweep's key questions)")
-    ap.add_argument("--out", default="results/mcnemar_ratio_sweep.csv")
+    ap.add_argument("--out", default="results/ratio_sweep/mcnemar_ratio_sweep.csv")
     args = ap.parse_args()
 
     rdir = Path(args.results_dir)

@@ -56,12 +56,20 @@ This repo is the code + data + results for a paper resubmission. The experimenta
 │   ├── curriculum/                 # curriculum phase files + manifest_curriculum.json
 │   └── ratio_sweep/                # diagonal datasets + manifest_ratio_sweep.json
 │
-└── results/                        # per run: predicted_cifs.csv.gz + validation/ panel
-    ├── mcnemar_ratio_sweep.csv     # paired significance tests
-    └── grpo_crystext_reward/       # GRPO w/ CrysText reward — 2 evaluated checkpoints, plus
-                                    #   val_trace.jsonl (43 held-out checks), reward_trace.jsonl.gz
-                                    #   (26,568 completions), reward_group_trace.jsonl.gz (4,428
-                                    #   groups, within-group variance), reward_record.csv
+└── results/                        # one subfolder per sweep; each run holds
+    │                               #   predicted_cifs.csv.gz + validation/ panel
+    ├── composition_sweep/          # comp_mp20_{00,25,50,75,100}
+    ├── curriculum_order/           # curr_fwd / curr_rev + _p1 phase-1 forks (MP-20 probes)
+    ├── phase_split/                # psplit_k1000 / k3000 / datamatch (uncapped pools)
+    ├── ratio_sweep/                # ratio_1to7 ... ratio_4to3
+    │   └── mcnemar_ratio_sweep.csv # paired significance tests
+    ├── rank_sweep/                 # rank_r{16,32,64,128}_s{3407,1234}
+    ├── grpo/                       # grpo_r32_from3000_{discrete,continuous} and
+    │                               #   grpo_crystext_reward/ (2 evaluated checkpoints, plus
+    │                               #   val_trace.jsonl (43 held-out checks), reward_trace.jsonl.gz
+    │                               #   (26,568 completions), reward_group_trace.jsonl.gz (4,428
+    │                               #   groups, within-group variance), reward_record.csv)
+    └── training_times.csv          # spans every sweep
 ```
 
 All `*.csv.gz` are gzip-compressed (CIF text compresses ~6–7×). `pandas.read_csv` reads `.gz`
@@ -157,7 +165,7 @@ per-crystal exposure to the composition sweep. Only *where the emphasis falls* c
 | `ratio_4to3` | 13,714 : 10,286 | 57.1% | 2571 + 1929 | 28.1% | 0.053 |
 | `comp_mp20_100` | 24,000 : 0 | 100% | 4500 + 0 | 26.6% | 0.039 |
 
-**Paired significance** (`results/mcnemar_ratio_sweep.csv`, McNemar exact, n = 8,096 paired):
+**Paired significance** (`results/ratio_sweep/mcnemar_ratio_sweep.csv`, McNemar exact, n = 8,096 paired):
 
 | comparison | Δ | p | verdict |
 |---|---:|---:|---|
@@ -324,7 +332,7 @@ betas 0.9/0.99, grad-clip 0.1) and their batch geometry (`per_device_train_batch
 | step 1150 | 24.3% | 0.108 |
 
 The decline is monotone in every window of the run — this is the training-side record from
-`results/grpo_crystext_reward/reward_record.csv`, where *val-tier* is the share of completions
+`results/grpo/grpo_crystext_reward/reward_record.csv`, where *val-tier* is the share of completions
 matching at `stol=0.5` and *group variance* is the share of crystal groups whose 6 generations
 do not all score identically (a group with no spread contributes no GRPO gradient):
 
@@ -346,7 +354,7 @@ for the same output, which is a cleaner signal in principle but produced fewer i
 Neither beats simply stopping after SFT. The untested variant is **their reward at our lr (5e-7)**,
 which would separate the reward design from the 2× learning rate.
 
-Artifacts: `results/grpo_crystext_reward/` (predictions, validation, reward + val traces).
+Artifacts: `results/grpo/grpo_crystext_reward/` (predictions, validation, reward + val traces).
 Adapter: [`grpo_crystext_reward/step2150`](https://huggingface.co/shehrozashoaib/LLM_Crystal_CIF)
 on the HF model repo — that is the *last* checkpoint (degraded, and not itself evaluated); the two
 checkpoints that were evaluated no longer exist as weights, see
@@ -464,7 +472,7 @@ older GRPO eval with `--system_prompt grpo` would quantify what the mismatch cos
 callback — so on resuming the CrysText run from step 1150, the first validation check overwrote
 `best_model/` with a *worse* checkpoint, and `save_total_limit=10` later evicted checkpoint-1150.
 The weights of both evaluated checkpoints (steps 150 and 1150) are therefore gone; their
-predictions and validation panels are published in full under `results/grpo_crystext_reward/`, so
+predictions and validation panels are published in full under `results/grpo/grpo_crystext_reward/`, so
 the reported numbers remain verifiable, but those adapters cannot be re-run. Fixed in
 `grpo_crystext_reward.py`: the callback restores the previous best from `best_info.json`, so
 `best_model/` can only ever improve. **Port that fix before resuming any other `grpo_*.py` trainer.**
