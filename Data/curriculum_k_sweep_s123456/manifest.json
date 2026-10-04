@@ -1,0 +1,215 @@
+{
+  "rule": "data_frac = step_frac = k/total_steps; each non-empty phase runs equal epochs",
+  "sampling": "pools shuffled once with `seed`; MPTS-52 phase = prefix of shuffled MPTS-52 train; MP-20 phase = prefix of shuffled leakage-safe MP-20 train after removing ids drawn by this run's MPTS-52 phase",
+  "params": {
+    "seed": 123456,
+    "total_train": 24000,
+    "total_steps": 4500,
+    "effective_batch": 32,
+    "reference_epochs": 6.0
+  },
+  "leakage_filter": {
+    "mpts52_eval_ids": 13096,
+    "mp20_train_dropped": 2982,
+    "mp20_train_usable": 24154,
+    "mp20_usable_also_in_mp52_train": 8850
+  },
+  "runs": {
+    "0": {
+      "tag": "k0000",
+      "fraction_mp20": 0.0,
+      "data": {
+        "mp20": 0,
+        "mp52": 24000,
+        "total": 24000,
+        "unique_total": 24000
+      },
+      "steps": {
+        "mp20": 0,
+        "mp52": 4500,
+        "total": 4500
+      },
+      "epochs_per_phase": {
+        "mp20": 0.0,
+        "mp52": 6.0
+      },
+      "mp20_in_mp52_train": 0,
+      "ids_hash": {
+        "mp20": null,
+        "mp52": "2bf5a88602a8c81f"
+      },
+      "files": {
+        "mp20": null,
+        "mp52": "Data/curriculum_k_sweep_s123456/train_mp52_k0000.csv.gz"
+      }
+    },
+    "500": {
+      "tag": "k0500",
+      "fraction_mp20": 0.111111,
+      "data": {
+        "mp20": 2667,
+        "mp52": 21333,
+        "total": 24000,
+        "unique_total": 24000
+      },
+      "steps": {
+        "mp20": 500,
+        "mp52": 4000,
+        "total": 4500
+      },
+      "epochs_per_phase": {
+        "mp20": 5.999,
+        "mp52": 6.0
+      },
+      "mp20_in_mp52_train": 280,
+      "ids_hash": {
+        "mp20": "2fbf0f702c557c6c",
+        "mp52": "f2cb774a08731c80"
+      },
+      "files": {
+        "mp20": "Data/curriculum_k_sweep_s123456/train_mp20_k0500.csv.gz",
+        "mp52": "Data/curriculum_k_sweep_s123456/train_mp52_k0500.csv.gz"
+      }
+    },
+    "1000": {
+      "tag": "k1000",
+      "fraction_mp20": 0.222222,
+      "data": {
+        "mp20": 5333,
+        "mp52": 18667,
+        "total": 24000,
+        "unique_total": 24000
+      },
+      "steps": {
+        "mp20": 1000,
+        "mp52": 3500,
+        "total": 4500
+      },
+      "epochs_per_phase": {
+        "mp20": 6.0,
+        "mp52": 6.0
+      },
+      "mp20_in_mp52_train": 837,
+      "ids_hash": {
+        "mp20": "1abc4a8ffd757ddb",
+        "mp52": "5149a3189fe7add4"
+      },
+      "files": {
+        "mp20": "Data/curriculum_k_sweep_s123456/train_mp20_k1000.csv.gz",
+        "mp52": "Data/curriculum_k_sweep_s123456/train_mp52_k1000.csv.gz"
+      }
+    },
+    "1500": {
+      "tag": "k1500",
+      "fraction_mp20": 0.333333,
+      "data": {
+        "mp20": 8000,
+        "mp52": 16000,
+        "total": 24000,
+        "unique_total": 24000
+      },
+      "steps": {
+        "mp20": 1500,
+        "mp52": 3000,
+        "total": 4500
+      },
+      "epochs_per_phase": {
+        "mp20": 6.0,
+        "mp52": 6.0
+      },
+      "mp20_in_mp52_train": 1595,
+      "ids_hash": {
+        "mp20": "3f1641a4208718e9",
+        "mp52": "db26d956a3af78c6"
+      },
+      "files": {
+        "mp20": "Data/curriculum_k_sweep_s123456/train_mp20_k1500.csv.gz",
+        "mp52": "Data/curriculum_k_sweep_s123456/train_mp52_k1500.csv.gz"
+      }
+    },
+    "2000": {
+      "tag": "k2000",
+      "fraction_mp20": 0.444444,
+      "data": {
+        "mp20": 10667,
+        "mp52": 13333,
+        "total": 24000,
+        "unique_total": 24000
+      },
+      "steps": {
+        "mp20": 2000,
+        "mp52": 2500,
+        "total": 4500
+      },
+      "epochs_per_phase": {
+        "mp20": 6.0,
+        "mp52": 6.0
+      },
+      "mp20_in_mp52_train": 2467,
+      "ids_hash": {
+        "mp20": "26e3ecd35473819d",
+        "mp52": "08cdee1961cb75a1"
+      },
+      "files": {
+        "mp20": "Data/curriculum_k_sweep_s123456/train_mp20_k2000.csv.gz",
+        "mp52": "Data/curriculum_k_sweep_s123456/train_mp52_k2000.csv.gz"
+      }
+    },
+    "2500": {
+      "tag": "k2500",
+      "fraction_mp20": 0.555556,
+      "data": {
+        "mp20": 13333,
+        "mp52": 10667,
+        "total": 24000,
+        "unique_total": 24000
+      },
+      "steps": {
+        "mp20": 2500,
+        "mp52": 2000,
+        "total": 4500
+      },
+      "epochs_per_phase": {
+        "mp20": 6.0,
+        "mp52": 6.0
+      },
+      "mp20_in_mp52_train": 3518,
+      "ids_hash": {
+        "mp20": "20f61ff4596f6c03",
+        "mp52": "ed20d651e4ae3879"
+      },
+      "files": {
+        "mp20": "Data/curriculum_k_sweep_s123456/train_mp20_k2500.csv.gz",
+        "mp52": "Data/curriculum_k_sweep_s123456/train_mp52_k2500.csv.gz"
+      }
+    },
+    "4500": {
+      "tag": "k4500",
+      "fraction_mp20": 1.0,
+      "data": {
+        "mp20": 24000,
+        "mp52": 0,
+        "total": 24000,
+        "unique_total": 24000
+      },
+      "steps": {
+        "mp20": 4500,
+        "mp52": 0,
+        "total": 4500
+      },
+      "epochs_per_phase": {
+        "mp20": 6.0,
+        "mp52": 0.0
+      },
+      "mp20_in_mp52_train": 8798,
+      "ids_hash": {
+        "mp20": "4a1905671e7cbebf",
+        "mp52": null
+      },
+      "files": {
+        "mp20": "Data/curriculum_k_sweep_s123456/train_mp20_k4500.csv.gz",
+        "mp52": null
+      }
+    }
+  }
+}

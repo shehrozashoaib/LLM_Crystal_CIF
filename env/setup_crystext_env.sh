@@ -29,12 +29,16 @@ uv pip install --python "$VENV" "$TORCH_PIN" --index-url "$TORCH_INDEX"
 
 echo "=== [crystext-env] install training + reward stack ==="
 # torch pinned again so the resolver never swaps it for a CPU pypi build.
+# unsloth + unsloth_zoo pinned as a pair: left floating, uv resolves unsloth
+# 2025.7.x (predates trl 0.24 -> IndexError in PatchFastRL on import) next to
+# a newer zoo. 2026.1.4 is verified against torch 2.10+cu128 / trl 0.24.0.
+# Stable releases only (no rc pandas/tokenizers/safetensors).
 uv pip install --python "$VENV" \
   --extra-index-url "$TORCH_INDEX" \
   --index-strategy unsafe-best-match \
-  --prerelease=allow \
+  --prerelease=if-necessary-or-explicit \
   "$TORCH_PIN" \
-  unsloth unsloth_zoo \
+  "unsloth==2026.1.4" "unsloth_zoo==2026.1.4" \
   "trl==0.24.0" \
   transformers datasets accelerate peft \
   bitsandbytes \

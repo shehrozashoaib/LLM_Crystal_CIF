@@ -23,7 +23,7 @@ echo "=== [vllm] install vllm 0.22 + transformers/pandas ==="
 uv pip install --python "$VENV" \
   --extra-index-url "$TORCH_INDEX" \
   --index-strategy unsafe-best-match \
-  --prerelease=allow \
+  --prerelease=if-necessary-or-explicit \
   "torch==2.11.0+cu130" \
   "vllm==0.22.0" \
   transformers pandas

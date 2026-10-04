@@ -206,7 +206,9 @@ def main() -> None:
     rows_out = pd.concat(frames, ignore_index=True)
     if len(rows_out) != len(sub):
         sys.exit(f"[FATAL] assembled {len(rows_out)} rows, expected {len(sub)}")
-    rows_out.to_csv(output_path, index=False)
+    tmp_out = output_path.with_suffix(".csv.tmp")
+    rows_out.to_csv(tmp_out, index=False)
+    os.replace(tmp_out, output_path)    # atomic: never leave a half-written final CSV
     print(f"  assembled {len(rows_out)}/{len(sub)} materials -> {output_path}")
 
     # ---- Summary ----
