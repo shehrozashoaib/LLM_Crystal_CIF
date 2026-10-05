@@ -163,6 +163,12 @@ def main():
         "val_csv": args.val_csv,
         "arch": ARCH,
         "init_adapter": args.init_adapter or None,
+        "seed": args.seed,
+        "versions": {"torch": torch.__version__, "cuda": torch.version.cuda,
+                     "unsloth": getattr(__import__("unsloth"), "__version__", None),
+                     "trl": __import__("trl").__version__,
+                     "transformers": __import__("transformers").__version__,
+                     "peft": __import__("peft").__version__},
         "method": "lora",
         "quantization": "16bit",
         "run_id": args.run_name,
@@ -334,8 +340,11 @@ def main():
     try:
         # Resume from the latest checkpoint if one exists for this run.
         resume_ckpt = None
-        ckpts = sorted([p for p in CHECKPOINTS_DIR.glob("checkpoint-*") if p.is_dir()],
-                       key=lambda p: p.stat().st_mtime, reverse=True)
+        # Newest by STEP, not mtime: mtime is reset by any copy/restore of the
+        # run dir, which would silently resume from an older checkpoint.
+        ckpts = sorted([p for p in CHECKPOINTS_DIR.glob("checkpoint-*")
+                        if p.is_dir() and p.name.split("-")[-1].isdigit()],
+                       key=lambda p: int(p.name.split("-")[-1]), reverse=True)
         if ckpts:
             resume_ckpt = str(ckpts[0])
             print(f"Resuming from {resume_ckpt}")
@@ -345,6 +354,9 @@ def main():
             trainer_stats = trainer.train(resume_from_checkpoint=resume_ckpt) if resume_ckpt else trainer.train()
 
         metrics = getattr(trainer_stats, "metrics", {}) or {}
+        # Pinned-step contract: the saved model must be exactly max_steps.
+        if trainer.state.global_step != args.max_steps:
+            raise RuntimeError(f"trained {trainer.state.global_step} steps, expected {args.max_steps}")
         with open(EXPERIMENT_DIR / "training_stats.json", "w") as f:
             json.dump({
                 "train_loss": getattr(trainer_stats, "training_loss", None),
@@ -352,6 +364,9 @@ def main():
                 "train_samples_per_second": metrics.get("train_samples_per_second"),
                 "epoch": metrics.get("epoch"),
                 "max_steps": args.max_steps,
+                "global_step": trainer.state.global_step,
+                "seed": args.seed,
+                "resumed_from": resume_ckpt,
             }, f, indent=2)
     except Exception as e:
         print(f"❌ Training failed: {e}")
