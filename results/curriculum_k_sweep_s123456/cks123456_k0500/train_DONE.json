@@ -1,0 +1,9 @@
+{
+  "steps": 4000,
+  "train_csv": "Data/curriculum_k_sweep_s123456/train_mp52_k0500.csv.gz",
+  "seed": 123456,
+  "adapter_sha256": "2037ae170f32f820",
+  "init_adapter": "experiments/cks123456_k0500_p1/final_model/model",
+  "init_adapter_sha256": "4dcdaed99c8a9ad6",
+  "finished": "2026-10-05T20:27:59"
+}
