@@ -1,0 +1,1 @@
+{"adapter_sha256": "74212bad65345787", "seed": 25478, "temperature": 0.6, "top_p": 0.9, "ret_seqs": 10, "max_new_tokens": 3072, "system_prompt": "sft", "test_csv": "Data/source/mp_52_test.csv.gz", "test_n": 8096}
