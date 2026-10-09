@@ -1,0 +1,13 @@
+Validation Summary for generated/cks123456_k1500/generated_cifs_cks123456_k1500_10seq_maxtok3072_0_8095.csv
+Generated on: 2026-10-09 10:36:33
+Total samples: 8096
+Success rate: 29.4%
+
+================================================================================
+RMSE PANEL (StructureMatcher RMS, Å)
+================================================================================
+Strict matched RMS  (n=14553): mean=0.152  median=0.054  std=0.170  min=0.000  max=0.500
+Near-miss RMS (all valid gens, n=48222): mean=0.500  median=0.589  std=0.270
+  bins:  <0.5: 18142   0.5-1.0: 29925   1.0-1.5: 155   >=1.5: 0
+
+Detailed statistics saved in: experiments/cks123456_k1500/validation_seed123456/validation_20261009_075625_mp52_16bit_10sequences_mp52_cks123456_k1500/validation_20261009_075625_10sequences_mp52_cks123456_k1500_16bit.csv
