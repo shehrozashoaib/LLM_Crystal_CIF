@@ -23,6 +23,11 @@ a restart never re-uploads. Exits once every k in the manifest is graded and
 pushed.
 
     SEED=25478 python release/curriculum_k_sweep_publish.py
+    SWEEP=composition_sweep SEED=25478 python release/curriculum_k_sweep_publish.py
+
+SWEEP selects the family: curriculum_k_sweep (runs cks<SEED>_*, default) or
+composition_sweep (runs comp<SEED>_*, from training/run_composition_seed_sweep.sh);
+both launchers share the DONE.json / validation_seed<SEED> / results layout.
 """
 from __future__ import annotations
 
@@ -42,6 +47,8 @@ csv.field_size_limit(10 ** 9)
 
 ROOT = Path(__file__).resolve().parent.parent
 SEED = int(os.environ["SEED"])
+SWEEP = os.environ.get("SWEEP", "curriculum_k_sweep")
+PREFIX = {"curriculum_k_sweep": "cks", "composition_sweep": "comp"}[SWEEP] + str(SEED)
 HF_REPO = os.environ.get("HF_REPO", "shehrozashoaib/LLM_Crystal_CIF")
 PUB = Path(os.environ.get("PUBLISH_DIR", "/workspace/LLM_Crystal_CIF_publish"))
 BRANCH = os.environ.get("PUBLISH_BRANCH", "main")
@@ -52,8 +59,8 @@ POLL = int(os.environ.get("POLL", "120"))
 SETTLE = 60          # seconds an artifact must sit unmodified before it is read
 EXP = ROOT / "experiments"
 GEN = ROOT / "generated"
-RESULTS_REL = Path("results") / f"curriculum_k_sweep_s{SEED}"
-STATE = EXP / f"cks_publish_state_s{SEED}.json"
+RESULTS_REL = Path("results") / f"{SWEEP}_s{SEED}"
+STATE = EXP / ("cks_publish_state_s%d.json" % SEED if SWEEP == "curriculum_k_sweep" else f"{SWEEP}_publish_state_s{SEED}.json")
 TRAILER = "\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 
@@ -216,16 +223,16 @@ def write_validation(run: str, vdir: Path):
 
 # --------------------------------------------------------------------- main --
 def manifest_runs() -> list[str]:
-    m = json.load(open(ROOT / "Data" / f"curriculum_k_sweep_s{SEED}" / "manifest.json"))
-    return [f"cks{SEED}_{r['tag']}" for r in m["runs"].values()]
+    m = json.load(open(ROOT / "Data" / f"{SWEEP}_s{SEED}" / "manifest.json"))
+    return [f"{PREFIX}_{r['tag']}" for r in m["runs"].values()]
 
 
 def main() -> None:
     finals = manifest_runs()
     done = load_state()
-    log(f"seed {SEED}: watching {finals}; already published: {len(done)} items")
+    log(f"{SWEEP} seed {SEED}: watching {finals}; already published: {len(done)} items")
     while True:
-        for d in sorted(EXP.glob(f"cks{SEED}_k*")):
+        for d in sorted(EXP.glob(f"{PREFIX}_*")):
             run = d.name
             try:
                 if f"hf:{run}" not in done and train_ready(d):

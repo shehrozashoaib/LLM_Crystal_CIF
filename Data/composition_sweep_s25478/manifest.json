@@ -1,0 +1,81 @@
+{
+  "rule": "single shuffled mixture, 24,000 unique crystals, 4,500 steps; MP-20 share = pct",
+  "sampling": "pools shuffled once with `seed` (as build_curriculum_k_sweep.py); MPTS-52 part = prefix of shuffled MPTS-52 train; MP-20 part = prefix of shuffled leakage-safe MP-20 train after removing ids drawn by this run's MPTS-52 part; mixture shuffled with `seed`",
+  "params": {
+    "seed": 25478,
+    "total_train": 24000,
+    "total_steps": 4500,
+    "effective_batch": 32
+  },
+  "endpoints": {
+    "0": {
+      "equals": "k-sweep k=0",
+      "file": "Data/curriculum_k_sweep_s25478/train_mp52_k0000.csv.gz",
+      "ids_hash": "b709d3af664d411c"
+    },
+    "100": {
+      "equals": "k-sweep k=4500",
+      "file": "Data/curriculum_k_sweep_s25478/train_mp20_k4500.csv.gz",
+      "ids_hash": "0d6977cfd77dbf4f"
+    }
+  },
+  "runs": {
+    "25": {
+      "tag": "mp20_025",
+      "pct_mp20": 25,
+      "data": {
+        "mp20": 6000,
+        "mp52": 18000,
+        "total": 24000,
+        "unique_total": 24000
+      },
+      "steps": 4500,
+      "epochs": 6.0,
+      "mp20_in_mp52_train": 976,
+      "ids_hash": {
+        "mp20": "58d7c312f1bebee8",
+        "mp52": "157b912f2cf266a6",
+        "mix": "721e0dea38cb60d0"
+      },
+      "file": "Data/composition_sweep_s25478/train_mp20_025.csv.gz"
+    },
+    "50": {
+      "tag": "mp20_050",
+      "pct_mp20": 50,
+      "data": {
+        "mp20": 12000,
+        "mp52": 12000,
+        "total": 24000,
+        "unique_total": 24000
+      },
+      "steps": 4500,
+      "epochs": 6.0,
+      "mp20_in_mp52_train": 2932,
+      "ids_hash": {
+        "mp20": "bf1ca5da5656bcb0",
+        "mp52": "66feb2fe0ffdb2b5",
+        "mix": "8df61bae3d8443fc"
+      },
+      "file": "Data/composition_sweep_s25478/train_mp20_050.csv.gz"
+    },
+    "75": {
+      "tag": "mp20_075",
+      "pct_mp20": 75,
+      "data": {
+        "mp20": 18000,
+        "mp52": 6000,
+        "total": 24000,
+        "unique_total": 24000
+      },
+      "steps": 4500,
+      "epochs": 6.0,
+      "mp20_in_mp52_train": 5558,
+      "ids_hash": {
+        "mp20": "03567e8c274032bb",
+        "mp52": "12e3b0334eb5cecf",
+        "mix": "40f26668b2221a27"
+      },
+      "file": "Data/composition_sweep_s25478/train_mp20_075.csv.gz"
+    }
+  }
+}
