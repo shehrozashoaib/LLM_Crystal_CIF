@@ -1,0 +1,105 @@
+{
+  "rule": "single shuffled mix; data_mp20 = round_half_up(total_train*pct/100); one phase of total_steps",
+  "sampling": "pools shuffled once with `seed` exactly as build_curriculum_k_sweep.py; MPTS-52 part = prefix of shuffled MPTS-52 train; MP-20 part = prefix of shuffled leakage-safe MP-20 train after removing ids drawn by the MPTS-52 part; parts concatenated and shuffled",
+  "params": {
+    "seed": 123456,
+    "total_train": 24000,
+    "total_steps": 4500,
+    "effective_batch": 32
+  },
+  "endpoints": {
+    "0": "k-sweep k=0 (identical crystals)",
+    "100": "k-sweep k=4500 (identical crystals)"
+  },
+  "leakage_filter": {
+    "mpts52_eval_ids": 13096,
+    "mp20_train_dropped": 2982,
+    "mp20_train_usable": 24154
+  },
+  "runs": {
+    "25": {
+      "tag": "mp20_25",
+      "fraction_mp20": 0.25,
+      "data": {
+        "mp20": 6000,
+        "mp52": 18000,
+        "total": 24000,
+        "unique_total": 24000
+      },
+      "steps": {
+        "mp20": 0,
+        "mp52": 0,
+        "mixed": 4500,
+        "total": 4500
+      },
+      "epochs": 6.0,
+      "mp20_in_mp52_train": 1014,
+      "ids_hash": {
+        "mixed": "de029231dee3a0ee",
+        "mp20": "46d4f844d2137d4d",
+        "mp52": "614d1e6b75a80a46"
+      },
+      "files": {
+        "mixed": "Data/composition_sweep_s123456/train_mp20_25.csv.gz",
+        "mp20": null,
+        "mp52": null
+      }
+    },
+    "50": {
+      "tag": "mp20_50",
+      "fraction_mp20": 0.5,
+      "data": {
+        "mp20": 12000,
+        "mp52": 12000,
+        "total": 24000,
+        "unique_total": 24000
+      },
+      "steps": {
+        "mp20": 0,
+        "mp52": 0,
+        "mixed": 4500,
+        "total": 4500
+      },
+      "epochs": 6.0,
+      "mp20_in_mp52_train": 2968,
+      "ids_hash": {
+        "mixed": "6d2972a98efac3ca",
+        "mp20": "7d4391585c791982",
+        "mp52": "570c3e2dc5e5bf53"
+      },
+      "files": {
+        "mixed": "Data/composition_sweep_s123456/train_mp20_50.csv.gz",
+        "mp20": null,
+        "mp52": null
+      }
+    },
+    "75": {
+      "tag": "mp20_75",
+      "fraction_mp20": 0.75,
+      "data": {
+        "mp20": 18000,
+        "mp52": 6000,
+        "total": 24000,
+        "unique_total": 24000
+      },
+      "steps": {
+        "mp20": 0,
+        "mp52": 0,
+        "mixed": 4500,
+        "total": 4500
+      },
+      "epochs": 6.0,
+      "mp20_in_mp52_train": 5654,
+      "ids_hash": {
+        "mixed": "0a0364f4f71835db",
+        "mp20": "a7ddb195d9596c01",
+        "mp52": "42614723def6c7cc"
+      },
+      "files": {
+        "mixed": "Data/composition_sweep_s123456/train_mp20_75.csv.gz",
+        "mp20": null,
+        "mp52": null
+      }
+    }
+  }
+}

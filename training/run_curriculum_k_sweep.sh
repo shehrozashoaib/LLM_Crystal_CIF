@@ -77,7 +77,7 @@ import json,sys
 m=json.load(open('$MANIFEST'))['runs'].get('$1')
 if m is None: sys.exit('[FATAL] k=$1 not in $MANIFEST')
 d=m
-for p in '$2'.split('.'): d=d[p]
+for p in '$2'.split('.'): d=d.get(p) if isinstance(d, dict) else None
 print('' if d is None else d)"
 }
 
@@ -133,6 +133,17 @@ run_one () {
   tag="$(mfield "$k" tag)"
   s20="$(mfield "$k" steps.mp20)"; s52="$(mfield "$k" steps.mp52)"
   f20="$(mfield "$k" files.mp20)"; f52="$(mfield "$k" files.mp52)"
+  # Composition manifests (datasets/build_composition_seeded.py) carry one shuffled mix.
+  local fmix smix
+  fmix="$(mfield "$k" files.mixed)"; smix="$(mfield "$k" steps.mixed)"
+  if [ -n "$fmix" ]; then
+    smix=$(( smix / STEP_DIV )); if [ "$smix" -lt 1 ]; then smix=1; fi
+    run="${PREFIX}_${tag}"
+    echo "######## mix $k  ${smix} steps on one shuffled MP-20+MPTS-52 set   run=$run ########"
+    train_phase "$run" "$fmix" "$smix"
+    eval_run "$run"
+    return
+  fi
   s20=$(( s20 / STEP_DIV )); s52=$(( s52 / STEP_DIV ))
   if [ "$k" -gt 0 ] && [ "$s20" -lt 1 ]; then s20=1; fi
   if [ "$k" -lt 4500 ] && [ "$s52" -lt 1 ]; then s52=1; fi
@@ -148,6 +159,11 @@ run_one () {
     train_phase "${run}_p1" "$f20" "$s20"
     train_phase "$run" "$f52" "$s52" "$EXP_ROOT/${run}_p1/final_model/model"
   fi
+  eval_run "$run"
+}
+
+eval_run () {  # generate -> validate -> collect, for a trained run
+  local run="$1"
 
   local md="$EXP_ROOT/$run/final_model/model" tok="$EXP_ROOT/$run/final_model/tokenizer"
   local asha; asha="$(sha "$md")"
