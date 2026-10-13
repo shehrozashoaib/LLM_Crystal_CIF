@@ -1,0 +1,9 @@
+{
+  "steps": 4500,
+  "train_csv": "Data/composition_sweep_s25478/train_mp20_025.csv.gz",
+  "seed": 25478,
+  "adapter_sha256": "8eef083e3fc35adc",
+  "init_adapter": null,
+  "init_adapter_sha256": null,
+  "finished": "2026-10-13T12:02:53"
+}
