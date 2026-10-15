@@ -1,0 +1,13 @@
+Validation Summary for generated/comp25478_mp20_075/generated_cifs_comp25478_mp20_075_10seq_maxtok3072_0_8095.csv
+Generated on: 2026-10-15 19:59:00
+Total samples: 8096
+Success rate: 28.1%
+
+================================================================================
+RMSE PANEL (StructureMatcher RMS, Å)
+================================================================================
+Strict matched RMS  (n=15028): mean=0.127  median=0.045  std=0.157  min=0.000  max=0.500
+Near-miss RMS (all valid gens, n=45955): mean=0.478  median=0.574  std=0.282
+  bins:  <0.5: 18491   0.5-1.0: 27334   1.0-1.5: 130   >=1.5: 0
+
+Detailed statistics saved in: experiments/comp25478_mp20_075/validation_seed25478/validation_20261015_185445_mp52_16bit_10sequences_mp52_comp25478_mp20_075/validation_20261015_185445_10sequences_mp52_comp25478_mp20_075_16bit.csv
