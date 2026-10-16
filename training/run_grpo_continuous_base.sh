@@ -12,18 +12,15 @@
 #   bash training/run_grpo_continuous_base.sh                    # seed 123456
 #   SEED=25478 bash training/run_grpo_continuous_base.sh         # another seed
 #   GRPO_SMOKE=1 MAX_STEPS=2 TEST_N=8 bash training/run_grpo_continuous_base.sh   # wiring test
-#   GRPO_REWARD=discrete bash training/run_grpo_continuous_base.sh   # discrete reward, same everything else
-#   GRPO_START_MODEL=<merged SFT dir> ...   # start from an SFT checkpoint folded in by
-#       training/merge_lora_adapter.py: fresh LoRA on top, so the KL reference (adapter off)
-#       is that frozen SFT checkpoint, not the base model
+#   # from an SFT adapter, KL anchored to it (frozen copy), e.g. SFT step 2000 + 2500 GRPO:
+#   GRPO_START_ADAPTER=experiments/sft_mp52_s123456_to2000/final_model/model GRPO_LR=5e-7 \
+#     MAX_STEPS=2500 RUN_ID=grpo_cont_sft2000_s123456 bash training/run_grpo_continuous_base.sh
 # ============================================================================
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; cd "$HERE/.."
 
 SEED="${SEED:-123456}"; MAX_STEPS="${MAX_STEPS:-4500}"
-GRPO_REWARD="${GRPO_REWARD:-continuous}"
-case "$GRPO_REWARD" in continuous) RTAG=cont;; discrete) RTAG=disc;; *) echo "[FATAL] GRPO_REWARD=$GRPO_REWARD"; exit 1;; esac
-RUN_ID="${RUN_ID:-grpo_${RTAG}_base_s${SEED}}"
+RUN_ID="${RUN_ID:-grpo_cont_base_s${SEED}}"
 [ "${GRPO_SMOKE:-0}" = "1" ] && RUN_ID="smoke_${RUN_ID}"
 EXP="experiments/$RUN_ID"
 TRAIN_RETRIES="${TRAIN_RETRIES:-30}"
@@ -31,17 +28,17 @@ RET_SEQS="${RET_SEQS:-10}"; MAX_NEW_TOKENS="${MAX_NEW_TOKENS:-3072}"
 TEMPERATURE="${TEMPERATURE:-0.6}"; TOP_P="${TOP_P:-0.9}"; SYSTEM_PROMPT="${SYSTEM_PROMPT:-sft}"
 TEST_CSV="${TEST_CSV:-Data/source/mp_52_test.csv.gz}"; TEST_N="${TEST_N:-8096}"
 GPU_MEM_UTIL="${GPU_MEM_UTIL:-0.90}"; GEN_CHUNK="${GEN_CHUNK:-1000}"
-RESULTS_DIR="${RESULTS_DIR:-results/grpo_${GRPO_REWARD}_base_s${SEED}}"
+RESULTS_DIR="${RESULTS_DIR:-results/grpo_continuous_base_s${SEED}}"
 PY="${PYTHON:-/venv/py312/bin/python}"; VLLM_PY="${VLLM_PYTHON:-/venv/vllm/bin/python}"
 export UNSLOTH_DISABLE_DOUBLE_BUFFER="${UNSLOTH_DISABLE_DOUBLE_BUFFER:-1}"
 export VLLM_USE_FLASHINFER_SAMPLER="${VLLM_USE_FLASHINFER_SAMPLER:-0}"
 export VLLM_ATTENTION_BACKEND="${VLLM_ATTENTION_BACKEND:-FLASH_ATTN}"
-export GRPO_SEED="$SEED" GRPO_MAX_STEPS="$MAX_STEPS" GRPO_RUN_ID="$RUN_ID" GRPO_REWARD
+export GRPO_SEED="$SEED" GRPO_MAX_STEPS="$MAX_STEPS" GRPO_RUN_ID="$RUN_ID"
 mkdir -p logs
 
 trained () {  # training_stats.json written only after global_step == MAX_STEPS
   [ -f "$EXP/final_model/model/adapter_model.safetensors" ] && [ -f "$EXP/training_stats.json" ] &&
-  "$PY" -c "import json,sys; d=json.load(open('$EXP/training_stats.json')); sys.exit(0 if d['global_step']==$MAX_STEPS==d['max_steps'] and d['seed']==$SEED and d.get('reward','continuous')=='$GRPO_REWARD' else 1)"
+  "$PY" -c "import json,sys; d=json.load(open('$EXP/training_stats.json')); sys.exit(0 if d['global_step']==$MAX_STEPS==d['max_steps'] and d['seed']==$SEED else 1)"
 }
 
 # ---- 1. Train (retry on crash; resumes from newest checkpoint) --------------
@@ -52,18 +49,18 @@ for i in $(seq 1 "$TRAIN_RETRIES"); do
   trained || sleep 30
 done
 trained || { echo "[FATAL] $RUN_ID not trained after $TRAIN_RETRIES attempts"; exit 1; }
-"$PY" - "$EXP" "$SEED" "$GRPO_REWARD" <<'PY'
+"$PY" - "$EXP" "$SEED" <<'PY'
 import json, sys, hashlib, pathlib, datetime
-d, seed, reward = pathlib.Path(sys.argv[1]), int(sys.argv[2]), sys.argv[3]
+d, seed = pathlib.Path(sys.argv[1]), int(sys.argv[2])
 st = json.load(open(d / "training_stats.json"))
 sha = hashlib.sha256(open(d / "final_model/model/adapter_model.safetensors", "rb").read()).hexdigest()[:16]
-import os
-start = os.environ.get("GRPO_START_MODEL", "unsloth/Qwen2.5-7B-Instruct")
-prov = pathlib.Path(start) / "merge_provenance.json"
-json.dump({"steps": st["global_step"], "seed": seed, "adapter_sha256": sha, "init_adapter": None,
-           "start_model": start, "kl_reference": start,
-           "start_merge": json.load(open(prov)) if prov.exists() else None,
-           "method": f"grpo_{reward}_from_{'sft' if prov.exists() else 'base'}",
+ad = st.get("start_adapter")
+json.dump({"steps": st["global_step"], "seed": seed, "adapter_sha256": sha,
+           "init_adapter": ad,
+           "init_adapter_sha256": hashlib.sha256(open(pathlib.Path(ad) / "adapter_model.safetensors", "rb").read()).hexdigest()[:16] if ad else None,
+           "start_model": st.get("start_model"), "kl_reference": st.get("ref"),
+           "learning_rate": st.get("learning_rate"),
+           "method": "grpo_continuous_from_sft" if ad else "grpo_continuous_from_base",
            "finished": datetime.datetime.now().isoformat(timespec="seconds")},
           open(d / "DONE.json", "w"), indent=2)
 PY

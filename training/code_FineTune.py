@@ -39,6 +39,19 @@ from transformers import AutoTokenizer, TrainerCallback
 import wandb
 
 
+class StopAtStep(TrainerCallback):
+    """Stop at a given step with the schedule of the full --max_steps run, saving that step."""
+
+    def __init__(self, step):
+        self.step = step
+
+    def on_step_end(self, args, state, control, **kwargs):
+        if state.global_step >= self.step:
+            control.should_save = True
+            control.should_training_stop = True
+        return control
+
+
 class ForceSaveCadence(TrainerCallback):
     """Re-apply the CLI save/log cadence onto a resumed TrainerState.
 
@@ -70,6 +83,9 @@ def parse_args():
     p.add_argument("--run_name", required=True, help="experiment/output dir name + wandb run name")
     p.add_argument("--output_root", default="experiments", help="root dir for outputs")
     p.add_argument("--max_steps", type=int, default=4500, help="HARD cap on optimizer steps (pinned)")
+    p.add_argument("--stop_at_step", type=int, default=0,
+                   help="stop (and save) at this step while keeping the LR schedule of --max_steps, "
+                        "e.g. to recreate an intermediate checkpoint of a pinned run. 0 = off.")
     p.add_argument("--lora_r", type=int, default=32)
     p.add_argument("--lora_alpha", type=int, default=64)
     p.add_argument("--lora_dropout", type=float, default=0.05)
@@ -333,7 +349,7 @@ def main():
         eval_dataset=val_dataset,            # None when eval disabled
         # NO EarlyStoppingCallback — pinned-step training.
         args=training_args,
-        callbacks=[ForceSaveCadence()],
+        callbacks=[ForceSaveCadence()] + ([StopAtStep(args.stop_at_step)] if args.stop_at_step else []),
     )
 
     print("\n" + "=" * 80 + "\n🚀 STARTING TRAINING (pinned to %d steps)\n" % args.max_steps + "=" * 80)
@@ -355,8 +371,9 @@ def main():
 
         metrics = getattr(trainer_stats, "metrics", {}) or {}
         # Pinned-step contract: the saved model must be exactly max_steps.
-        if trainer.state.global_step != args.max_steps:
-            raise RuntimeError(f"trained {trainer.state.global_step} steps, expected {args.max_steps}")
+        expected = args.stop_at_step or args.max_steps
+        if trainer.state.global_step != expected:
+            raise RuntimeError(f"trained {trainer.state.global_step} steps, expected {expected}")
         with open(EXPERIMENT_DIR / "training_stats.json", "w") as f:
             json.dump({
                 "train_loss": getattr(trainer_stats, "training_loss", None),
@@ -364,6 +381,7 @@ def main():
                 "train_samples_per_second": metrics.get("train_samples_per_second"),
                 "epoch": metrics.get("epoch"),
                 "max_steps": args.max_steps,
+                "stop_at_step": args.stop_at_step or None,
                 "global_step": trainer.state.global_step,
                 "seed": args.seed,
                 "resumed_from": resume_ckpt,

@@ -2,12 +2,6 @@
 """
 training/grpo_continuous_base.py — GRPO with the CONTINUOUS reward, from the BASE model
 ========================================================================================
-GRPO_REWARD=discrete swaps ONLY the training reward for the discrete one of
-training/grpo_r32_from3000_discrete.py: 1.0 iff StructureMatcher matches at the eval
-tolerance (stol 0.5 / ltol 0.3 / angle 10), else 0.0; -0.50 unparseable; the same
-<=0.03 composition/symmetry tiebreaker. Everything else below is shared. Default
-(unset) = continuous, unchanged.
-
 Planned run (seed 123456): fresh LoRA (r32/a64/dropout 0.05, 7 proj modules — same as SFT)
 on unsloth/Qwen2.5-7B-Instruct, NO SFT. 10 completions per prompt, 2 prompts per optimizer
 step (pdbs 1 x grad_accum 20 = 20 completions), pinned 4,500 steps, lr 5e-6, beta 0.15,
@@ -83,16 +77,26 @@ except Exception:
 # ============================================================
 SEED = int(os.environ.get("GRPO_SEED", "123456"))
 START_MODEL_DIR = os.environ.get("GRPO_START_MODEL", "unsloth/Qwen2.5-7B-Instruct")
+# Optional: continue an SFT LoRA adapter instead of a fresh LoRA on the base model.
+START_ADAPTER = os.environ.get("GRPO_START_ADAPTER", "")
+# KL reference: "base" = adapter disabled (base Qwen; TRL/Unsloth default for PEFT),
+# "start" = a frozen copy of the starting policy (base + START_ADAPTER). For a base
+# start the two are identical; for an SFT start only "start" anchors GRPO to the SFT model.
+REF_MODE = os.environ.get("GRPO_REF", "start" if START_ADAPTER else "base")
+if START_ADAPTER:
+    if not (Path(START_ADAPTER) / "adapter_model.safetensors").exists():
+        raise SystemExit(f"GRPO_START_ADAPTER has no adapter_model.safetensors: {START_ADAPTER}")
+    _acfg = json.load(open(Path(START_ADAPTER) / "adapter_config.json"))
+    if _acfg.get("base_model_name_or_path") != START_MODEL_DIR:
+        raise SystemExit(f"adapter base {_acfg.get('base_model_name_or_path')} != {START_MODEL_DIR}")
+assert REF_MODE in ("base", "start"), REF_MODE
 SFT_MODEL_DIR = START_MODEL_DIR            # name kept for the helpers below
 TOKENIZER_DIR = os.environ.get("GRPO_START_TOKENIZER", START_MODEL_DIR)
 
 TRAIN_CSV = os.environ.get("GRPO_TRAIN_CSV", f"Data/curriculum_k_sweep_s{SEED}/train_mp52_k0000.csv.gz")
 VAL_CSV = "Data/source/mp_52_val.csv.gz"   # monitor only — never trained on
 
-REWARD_MODE = os.environ.get("GRPO_REWARD", "continuous")
-if REWARD_MODE not in ("continuous", "discrete"):
-    raise SystemExit(f"GRPO_REWARD must be continuous|discrete, got {REWARD_MODE!r}")
-RUN_ID = os.environ.get("GRPO_RUN_ID", f"grpo_{'cont' if REWARD_MODE == 'continuous' else 'disc'}_base_s{SEED}")
+RUN_ID = os.environ.get("GRPO_RUN_ID", f"grpo_cont_base_s{SEED}")
 OUTPUT_DIR = os.environ.get("GRPO_OUTPUT_DIR", f"experiments/{RUN_ID}")
 EXPERIMENT_DIR = Path(OUTPUT_DIR)
 CHECKPOINTS_DIR = EXPERIMENT_DIR / "checkpoints"
@@ -244,30 +248,54 @@ EOS_TOKEN_IDS = sorted({i for i in [tokenizer.eos_token_id,
                         if i is not None})
 
 model, _ = FastLanguageModel.from_pretrained(
-    model_name=START_MODEL_DIR,
+    model_name=START_ADAPTER or START_MODEL_DIR,
     max_seq_length=HYPERPARAMS["max_seq_length"],
     dtype=None,
     load_in_4bit=HYPERPARAMS["load_in_4bit"],
 )
 
-model = FastLanguageModel.get_peft_model(
-    model,
-    r=HYPERPARAMS["lora_r"],
-    target_modules=[
-        "q_proj", "k_proj", "v_proj", "o_proj",
-        "gate_proj", "up_proj", "down_proj",
-    ],
-    lora_alpha=HYPERPARAMS["lora_alpha"],
-    lora_dropout=HYPERPARAMS["lora_dropout"],
-    bias="none",
-    use_gradient_checkpointing="unsloth",
-    random_state=SEED,
-    use_rslora=False,
-    loftq_config=None,
-)
+if START_ADAPTER:
+    # Unsloth loaded base + the SFT adapter as a PEFT model; continue THAT adapter.
+    FastLanguageModel.for_training(model)
+    print(f"[start] continuing SFT adapter {START_ADAPTER}")
+else:
+    model = FastLanguageModel.get_peft_model(
+        model,
+        r=HYPERPARAMS["lora_r"],
+        target_modules=[
+            "q_proj", "k_proj", "v_proj", "o_proj",
+            "gate_proj", "up_proj", "down_proj",
+        ],
+        lora_alpha=HYPERPARAMS["lora_alpha"],
+        lora_dropout=HYPERPARAMS["lora_dropout"],
+        bias="none",
+        use_gradient_checkpointing="unsloth",
+        random_state=SEED,
+        use_rslora=False,
+        loftq_config=None,
+    )
 
 if not hasattr(model, "warnings_issued") or getattr(model, "warnings_issued", None) is None:
     model.warnings_issued = {}
+
+_n_train = sum(p.numel() for p in model.parameters() if p.requires_grad)
+assert _n_train > 0, "no trainable parameters — the LoRA adapter is frozen"
+print(f"[start] trainable parameters: {_n_train:,}")
+
+ref_model = None
+if REF_MODE == "start" and START_ADAPTER:
+    # Frozen copy of the starting policy, loaded through Unsloth like the policy
+    # (Unsloth's log-prob path expects its patched models).
+    ref_model, _ = FastLanguageModel.from_pretrained(
+        model_name=START_ADAPTER,
+        max_seq_length=HYPERPARAMS["max_seq_length"],
+        dtype=None,
+        load_in_4bit=HYPERPARAMS["load_in_4bit"],
+    )
+    ref_model.eval()
+    for _p in ref_model.parameters():
+        _p.requires_grad_(False)
+    print(f"[ref] KL reference = frozen {START_ADAPTER}")
 
 
 # ============================================================
@@ -805,10 +833,7 @@ def cif_reward_batch(
 
         if target_cif is not None and i < len(target_cif):
             tgt = _parse_target_cif_cached(target_cif[i])
-            if REWARD_MODE == "continuous":
-                r_match_scalar, match_ladder = _continuous_match_ladder(ext, target_cif[i])
-            else:   # discrete: 1.0 iff matched at the eval tolerance, else 0.0
-                r_match_scalar, match_ladder = _structure_match_ladder(ext, target_cif[i])
+            r_match_scalar, match_ladder = _continuous_match_ladder(ext, target_cif[i])
             if tgt is not None:
                 s_comp_exact = _exact_comp_score(gen_data["comp"], tgt["comp"])
                 s_elem = _element_set_score(gen_data["comp"], tgt["comp"])
@@ -822,10 +847,7 @@ def cif_reward_batch(
 
         # Reward assembly
         r_base = r_match_scalar
-        if REWARD_MODE == "discrete":
-            match_tier = ("val" if match_ladder["val"] else "med" if match_ladder["med"]
-                          else "loose" if match_ladder["loose"] else "no_match")
-        elif r_match_scalar >= 0.85: match_tier = "val"
+        if   r_match_scalar >= 0.85: match_tier = "val"
         elif r_match_scalar >= 0.55: match_tier = "med"
         elif r_match_scalar >= 0.25: match_tier = "loose"
         elif r_match_scalar >= -0.05: match_tier = "close"   # new tier
@@ -1053,13 +1075,13 @@ class GRPOValidationCallback(TrainerCallback):
 # ============================================================
 if WANDB_API_KEY:
     wandb.init(
-        project=f"cif-grpo-{REWARD_MODE}-base",
+        project="cif-grpo-continuous-base",
         name=RUN_ID,
         id=RUN_ID,
         resume="allow",
         config={"hyperparams": HYPERPARAMS, "grpo": GRPO_KW, "loss": LOSS_KW, "optim": OPTIM_KW,
                 "val_config": VAL_CONFIG, "start_model": START_MODEL_DIR, "train_csv": TRAIN_CSV,
-                "seed": SEED, "max_steps": MAX_STEPS, "reward": REWARD_MODE},
+                "seed": SEED, "max_steps": MAX_STEPS, "start_adapter": START_ADAPTER, "ref": REF_MODE},
     )
 
 grpo_args = GRPOConfig(
@@ -1130,11 +1152,19 @@ trainer = GRPOTrainer(
 )
 val_monitor.set_trainer(trainer)
 
+if ref_model is not None:
+    # TRL/Unsloth set ref_model=None for PEFT models and fall back to disable_adapter()
+    # (= base Qwen). With ref_model set, reference log-probs come from this frozen copy.
+    trainer.ref_model = ref_model
+assert (trainer.ref_model is not None) == (REF_MODE == "start" and bool(START_ADAPTER))
+
 print("=" * 70)
-print(f"GRPO — {REWARD_MODE.upper()} reward, from the BASE model (fresh LoRA)")
+print("GRPO — CONTINUOUS reward, from the BASE model (fresh LoRA)")
 print("=" * 70)
 print(f"run id / output:     {RUN_ID} -> {EXPERIMENT_DIR}")
 print(f"start model:         {START_MODEL_DIR}   (LoRA r{HYPERPARAMS['lora_r']} a{HYPERPARAMS['lora_alpha']})")
+print(f"start adapter:       {START_ADAPTER or '(fresh LoRA)'}")
+print(f"KL reference:        {'frozen start model' if trainer.ref_model is not None else 'base (adapter disabled)'}")
 print(f"seed:                {SEED}")
 print(f"train prompts:       {TRAIN_CSV} ({dataset_size})")
 print(f"max_steps:           {MAX_STEPS}   save every {SAVE_STEPS}   val every {VAL_EVERY}")
@@ -1143,14 +1173,9 @@ print(f"lr / warmup / sched: {HYPERPARAMS['learning_rate']} / {warmup_steps} / {
 print(f"beta / temperature:  {GRPO_KW['beta']} / {GRPO_KW['temperature']}  top_p {GRPO_KW['top_p']}")
 print(f"max_completion_len:  {GRPO_KW['max_completion_length']}")
 print(f"loss:                {LOSS_KW}")
-if REWARD_MODE == "continuous":
-    print("REWARD: continuous ladder on the RAW completion; -0.50 unparseable, -0.10 no match,")
-    print("        [-0.05,0.20] very loose, 0.25-0.35 loose, 0.55-0.70 med, 0.85-1.00 eval-tolerance")
-    print("        match, + <=0.03 composition/symmetry tiebreak")
-else:
-    print("REWARD: discrete on the RAW completion; -0.50 unparseable, 0.00 no match at the eval")
-    print("        tolerance, 1.00 match (stol 0.5 / ltol 0.3 / angle 10), + <=0.03 composition/")
-    print("        symmetry tiebreak")
+print("REWARD: continuous ladder on the RAW completion; -0.50 unparseable, -0.10 no match,")
+print("        [-0.05,0.20] very loose, 0.25-0.35 loose, 0.55-0.70 med, 0.85-1.00 eval-tolerance")
+print("        match, + <=0.03 composition/symmetry tiebreak")
 print("=" * 70)
 
 trainer_stats = trainer.train(resume_from_checkpoint=RESUME_CHECKPOINT)
@@ -1162,7 +1187,8 @@ trainer.save_model(str(FINAL_MODEL_DIR / "model"))
 tokenizer.save_pretrained(str(FINAL_MODEL_DIR / "tokenizer"))
 with open(EXPERIMENT_DIR / "training_stats.json", "w") as f:
     json.dump({"global_step": trainer.state.global_step, "max_steps": MAX_STEPS, "seed": SEED,
-               "reward": REWARD_MODE,
+               "start_model": START_MODEL_DIR, "start_adapter": START_ADAPTER or None, "ref": REF_MODE,
+               "learning_rate": HYPERPARAMS["learning_rate"],
                "train_runtime": (getattr(trainer_stats, "metrics", {}) or {}).get("train_runtime"),
                "resumed_from": RESUME_CHECKPOINT}, f, indent=2)
 print("Done.")
