@@ -77,5 +77,6 @@
       },
       "file": "Data/composition_sweep_s25478/train_mp20_075.csv.gz"
     }
-  }
+  },
+  "provenance": "Built by datasets/build_composition_seed_sweep.py (since removed). The current datasets/build_composition_seeded.py --seed 25478 selects the identical crystal set for every pct (verified 2026-10-14); only the row order of the mixed file differs. Trained with training/run_composition_seed_sweep.sh (since removed; single-phase, otherwise identical to training/run_curriculum_k_sweep.sh) as runs comp25478_mp20_{025,050,075}."
 }

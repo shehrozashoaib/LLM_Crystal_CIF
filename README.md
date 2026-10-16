@@ -449,6 +449,24 @@ training/run_rank_sweep.sh 16 32 64 128
 /venv/py312/bin/python evaluation/analyze_ratio_sweep.py
 ```
 
+Seeded replicates (one seed drives sampling, LoRA init, data order and vLLM; one procedure for every seed):
+
+```bash
+# curriculum switch-point sweep, k = 0 500 1000 1500 2000 2500 4500 MP-20 steps of 4,500
+/venv/py312/bin/python datasets/build_curriculum_k_sweep.py --seed <SEED>
+SEED=<SEED> bash training/run_curriculum_k_sweep.sh
+# composition sweep, 25/50/75% MP-20 (0% / 100% are the k-sweep's k=0 / k=4500 runs, asserted by the builder)
+/venv/py312/bin/python datasets/build_composition_seeded.py --seed <SEED>
+SEED=<SEED> DATA_DIR=Data/composition_sweep_s<SEED> PREFIX=comps<SEED> \
+  RESULTS_DIR=results/composition_sweep_s<SEED> bash training/run_curriculum_k_sweep.sh 25 50 75
+# optional: push adapters to HF and CSVs/validation to GitHub as each run completes
+SEED=<SEED> /venv/main/bin/python release/curriculum_k_sweep_publish.py
+```
+
+Done so far: seeds 123456 and 25478 for both sweeps — `results/curriculum_k_sweep_s<SEED>/`,
+`results/composition_sweep_s<SEED>/`, data in the matching `Data/` folders, adapters on the HF repo
+(`cks<SEED>_*`, `comps123456_*`; seed 25478's composition runs predate this launcher and are `comp25478_*`).
+
 Every stage is skipped if its output already exists, so a killed sweep resumes where it stopped.
 Generation is checkpointed per 1,000-prompt shard, and a partial output CSV is **regenerated rather
 than graded** (a row-count check, not a file-existence check — an earlier version of this pipeline

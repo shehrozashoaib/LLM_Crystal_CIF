@@ -26,7 +26,8 @@ pushed.
     SWEEP=composition_sweep SEED=25478 python release/curriculum_k_sweep_publish.py
 
 SWEEP selects the family: curriculum_k_sweep (runs cks<SEED>_*, default) or
-composition_sweep (runs comp<SEED>_*, from training/run_composition_seed_sweep.sh);
+composition_sweep (runs comp<SEED>_*: the seed-25478 composition runs, trained before
+the sweeps were consolidated onto training/run_curriculum_k_sweep.sh);
 both launchers share the DONE.json / validation_seed<SEED> / results layout.
 """
 from __future__ import annotations
