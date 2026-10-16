@@ -2,6 +2,12 @@
 """
 training/grpo_continuous_base.py — GRPO with the CONTINUOUS reward, from the BASE model
 ========================================================================================
+GRPO_REWARD=discrete swaps ONLY the training reward for the discrete one of
+training/grpo_r32_from3000_discrete.py: 1.0 iff StructureMatcher matches at the eval
+tolerance (stol 0.5 / ltol 0.3 / angle 10), else 0.0; -0.50 unparseable; the same
+<=0.03 composition/symmetry tiebreaker. Everything else below is shared. Default
+(unset) = continuous, unchanged.
+
 Planned run (seed 123456): fresh LoRA (r32/a64/dropout 0.05, 7 proj modules — same as SFT)
 on unsloth/Qwen2.5-7B-Instruct, NO SFT. 10 completions per prompt, 2 prompts per optimizer
 step (pdbs 1 x grad_accum 20 = 20 completions), pinned 4,500 steps, lr 5e-6, beta 0.15,
@@ -83,7 +89,10 @@ TOKENIZER_DIR = os.environ.get("GRPO_START_TOKENIZER", START_MODEL_DIR)
 TRAIN_CSV = os.environ.get("GRPO_TRAIN_CSV", f"Data/curriculum_k_sweep_s{SEED}/train_mp52_k0000.csv.gz")
 VAL_CSV = "Data/source/mp_52_val.csv.gz"   # monitor only — never trained on
 
-RUN_ID = os.environ.get("GRPO_RUN_ID", f"grpo_cont_base_s{SEED}")
+REWARD_MODE = os.environ.get("GRPO_REWARD", "continuous")
+if REWARD_MODE not in ("continuous", "discrete"):
+    raise SystemExit(f"GRPO_REWARD must be continuous|discrete, got {REWARD_MODE!r}")
+RUN_ID = os.environ.get("GRPO_RUN_ID", f"grpo_{'cont' if REWARD_MODE == 'continuous' else 'disc'}_base_s{SEED}")
 OUTPUT_DIR = os.environ.get("GRPO_OUTPUT_DIR", f"experiments/{RUN_ID}")
 EXPERIMENT_DIR = Path(OUTPUT_DIR)
 CHECKPOINTS_DIR = EXPERIMENT_DIR / "checkpoints"
@@ -796,7 +805,10 @@ def cif_reward_batch(
 
         if target_cif is not None and i < len(target_cif):
             tgt = _parse_target_cif_cached(target_cif[i])
-            r_match_scalar, match_ladder = _continuous_match_ladder(ext, target_cif[i])
+            if REWARD_MODE == "continuous":
+                r_match_scalar, match_ladder = _continuous_match_ladder(ext, target_cif[i])
+            else:   # discrete: 1.0 iff matched at the eval tolerance, else 0.0
+                r_match_scalar, match_ladder = _structure_match_ladder(ext, target_cif[i])
             if tgt is not None:
                 s_comp_exact = _exact_comp_score(gen_data["comp"], tgt["comp"])
                 s_elem = _element_set_score(gen_data["comp"], tgt["comp"])
@@ -810,7 +822,10 @@ def cif_reward_batch(
 
         # Reward assembly
         r_base = r_match_scalar
-        if   r_match_scalar >= 0.85: match_tier = "val"
+        if REWARD_MODE == "discrete":
+            match_tier = ("val" if match_ladder["val"] else "med" if match_ladder["med"]
+                          else "loose" if match_ladder["loose"] else "no_match")
+        elif r_match_scalar >= 0.85: match_tier = "val"
         elif r_match_scalar >= 0.55: match_tier = "med"
         elif r_match_scalar >= 0.25: match_tier = "loose"
         elif r_match_scalar >= -0.05: match_tier = "close"   # new tier
@@ -1038,13 +1053,13 @@ class GRPOValidationCallback(TrainerCallback):
 # ============================================================
 if WANDB_API_KEY:
     wandb.init(
-        project="cif-grpo-continuous-base",
+        project=f"cif-grpo-{REWARD_MODE}-base",
         name=RUN_ID,
         id=RUN_ID,
         resume="allow",
         config={"hyperparams": HYPERPARAMS, "grpo": GRPO_KW, "loss": LOSS_KW, "optim": OPTIM_KW,
                 "val_config": VAL_CONFIG, "start_model": START_MODEL_DIR, "train_csv": TRAIN_CSV,
-                "seed": SEED, "max_steps": MAX_STEPS},
+                "seed": SEED, "max_steps": MAX_STEPS, "reward": REWARD_MODE},
     )
 
 grpo_args = GRPOConfig(
@@ -1116,7 +1131,7 @@ trainer = GRPOTrainer(
 val_monitor.set_trainer(trainer)
 
 print("=" * 70)
-print("GRPO — CONTINUOUS reward, from the BASE model (fresh LoRA)")
+print(f"GRPO — {REWARD_MODE.upper()} reward, from the BASE model (fresh LoRA)")
 print("=" * 70)
 print(f"run id / output:     {RUN_ID} -> {EXPERIMENT_DIR}")
 print(f"start model:         {START_MODEL_DIR}   (LoRA r{HYPERPARAMS['lora_r']} a{HYPERPARAMS['lora_alpha']})")
@@ -1128,9 +1143,14 @@ print(f"lr / warmup / sched: {HYPERPARAMS['learning_rate']} / {warmup_steps} / {
 print(f"beta / temperature:  {GRPO_KW['beta']} / {GRPO_KW['temperature']}  top_p {GRPO_KW['top_p']}")
 print(f"max_completion_len:  {GRPO_KW['max_completion_length']}")
 print(f"loss:                {LOSS_KW}")
-print("REWARD: continuous ladder on the RAW completion; -0.50 unparseable, -0.10 no match,")
-print("        [-0.05,0.20] very loose, 0.25-0.35 loose, 0.55-0.70 med, 0.85-1.00 eval-tolerance")
-print("        match, + <=0.03 composition/symmetry tiebreak")
+if REWARD_MODE == "continuous":
+    print("REWARD: continuous ladder on the RAW completion; -0.50 unparseable, -0.10 no match,")
+    print("        [-0.05,0.20] very loose, 0.25-0.35 loose, 0.55-0.70 med, 0.85-1.00 eval-tolerance")
+    print("        match, + <=0.03 composition/symmetry tiebreak")
+else:
+    print("REWARD: discrete on the RAW completion; -0.50 unparseable, 0.00 no match at the eval")
+    print("        tolerance, 1.00 match (stol 0.5 / ltol 0.3 / angle 10), + <=0.03 composition/")
+    print("        symmetry tiebreak")
 print("=" * 70)
 
 trainer_stats = trainer.train(resume_from_checkpoint=RESUME_CHECKPOINT)
@@ -1142,6 +1162,7 @@ trainer.save_model(str(FINAL_MODEL_DIR / "model"))
 tokenizer.save_pretrained(str(FINAL_MODEL_DIR / "tokenizer"))
 with open(EXPERIMENT_DIR / "training_stats.json", "w") as f:
     json.dump({"global_step": trainer.state.global_step, "max_steps": MAX_STEPS, "seed": SEED,
+               "reward": REWARD_MODE,
                "train_runtime": (getattr(trainer_stats, "metrics", {}) or {}).get("train_runtime"),
                "resumed_from": RESUME_CHECKPOINT}, f, indent=2)
 print("Done.")

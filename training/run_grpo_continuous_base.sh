@@ -12,12 +12,15 @@
 #   bash training/run_grpo_continuous_base.sh                    # seed 123456
 #   SEED=25478 bash training/run_grpo_continuous_base.sh         # another seed
 #   GRPO_SMOKE=1 MAX_STEPS=2 TEST_N=8 bash training/run_grpo_continuous_base.sh   # wiring test
+#   GRPO_REWARD=discrete bash training/run_grpo_continuous_base.sh   # discrete reward, same everything else
 # ============================================================================
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; cd "$HERE/.."
 
 SEED="${SEED:-123456}"; MAX_STEPS="${MAX_STEPS:-4500}"
-RUN_ID="${RUN_ID:-grpo_cont_base_s${SEED}}"
+GRPO_REWARD="${GRPO_REWARD:-continuous}"
+case "$GRPO_REWARD" in continuous) RTAG=cont;; discrete) RTAG=disc;; *) echo "[FATAL] GRPO_REWARD=$GRPO_REWARD"; exit 1;; esac
+RUN_ID="${RUN_ID:-grpo_${RTAG}_base_s${SEED}}"
 [ "${GRPO_SMOKE:-0}" = "1" ] && RUN_ID="smoke_${RUN_ID}"
 EXP="experiments/$RUN_ID"
 TRAIN_RETRIES="${TRAIN_RETRIES:-30}"
@@ -25,17 +28,17 @@ RET_SEQS="${RET_SEQS:-10}"; MAX_NEW_TOKENS="${MAX_NEW_TOKENS:-3072}"
 TEMPERATURE="${TEMPERATURE:-0.6}"; TOP_P="${TOP_P:-0.9}"; SYSTEM_PROMPT="${SYSTEM_PROMPT:-sft}"
 TEST_CSV="${TEST_CSV:-Data/source/mp_52_test.csv.gz}"; TEST_N="${TEST_N:-8096}"
 GPU_MEM_UTIL="${GPU_MEM_UTIL:-0.90}"; GEN_CHUNK="${GEN_CHUNK:-1000}"
-RESULTS_DIR="${RESULTS_DIR:-results/grpo_continuous_base_s${SEED}}"
+RESULTS_DIR="${RESULTS_DIR:-results/grpo_${GRPO_REWARD}_base_s${SEED}}"
 PY="${PYTHON:-/venv/py312/bin/python}"; VLLM_PY="${VLLM_PYTHON:-/venv/vllm/bin/python}"
 export UNSLOTH_DISABLE_DOUBLE_BUFFER="${UNSLOTH_DISABLE_DOUBLE_BUFFER:-1}"
 export VLLM_USE_FLASHINFER_SAMPLER="${VLLM_USE_FLASHINFER_SAMPLER:-0}"
 export VLLM_ATTENTION_BACKEND="${VLLM_ATTENTION_BACKEND:-FLASH_ATTN}"
-export GRPO_SEED="$SEED" GRPO_MAX_STEPS="$MAX_STEPS" GRPO_RUN_ID="$RUN_ID"
+export GRPO_SEED="$SEED" GRPO_MAX_STEPS="$MAX_STEPS" GRPO_RUN_ID="$RUN_ID" GRPO_REWARD
 mkdir -p logs
 
 trained () {  # training_stats.json written only after global_step == MAX_STEPS
   [ -f "$EXP/final_model/model/adapter_model.safetensors" ] && [ -f "$EXP/training_stats.json" ] &&
-  "$PY" -c "import json,sys; d=json.load(open('$EXP/training_stats.json')); sys.exit(0 if d['global_step']==$MAX_STEPS==d['max_steps'] and d['seed']==$SEED else 1)"
+  "$PY" -c "import json,sys; d=json.load(open('$EXP/training_stats.json')); sys.exit(0 if d['global_step']==$MAX_STEPS==d['max_steps'] and d['seed']==$SEED and d.get('reward','continuous')=='$GRPO_REWARD' else 1)"
 }
 
 # ---- 1. Train (retry on crash; resumes from newest checkpoint) --------------
@@ -46,13 +49,13 @@ for i in $(seq 1 "$TRAIN_RETRIES"); do
   trained || sleep 30
 done
 trained || { echo "[FATAL] $RUN_ID not trained after $TRAIN_RETRIES attempts"; exit 1; }
-"$PY" - "$EXP" "$SEED" <<'PY'
+"$PY" - "$EXP" "$SEED" "$GRPO_REWARD" <<'PY'
 import json, sys, hashlib, pathlib, datetime
-d, seed = pathlib.Path(sys.argv[1]), int(sys.argv[2])
+d, seed, reward = pathlib.Path(sys.argv[1]), int(sys.argv[2]), sys.argv[3]
 st = json.load(open(d / "training_stats.json"))
 sha = hashlib.sha256(open(d / "final_model/model/adapter_model.safetensors", "rb").read()).hexdigest()[:16]
 json.dump({"steps": st["global_step"], "seed": seed, "adapter_sha256": sha, "init_adapter": None,
-           "start_model": "unsloth/Qwen2.5-7B-Instruct", "method": "grpo_continuous_from_base",
+           "start_model": "unsloth/Qwen2.5-7B-Instruct", "method": f"grpo_{reward}_from_base",
            "finished": datetime.datetime.now().isoformat(timespec="seconds")},
           open(d / "DONE.json", "w"), indent=2)
 PY
