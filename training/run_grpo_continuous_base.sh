@@ -13,6 +13,9 @@
 #   SEED=25478 bash training/run_grpo_continuous_base.sh         # another seed
 #   GRPO_SMOKE=1 MAX_STEPS=2 TEST_N=8 bash training/run_grpo_continuous_base.sh   # wiring test
 #   GRPO_REWARD=discrete bash training/run_grpo_continuous_base.sh   # discrete reward, same everything else
+#   GRPO_START_MODEL=<merged SFT dir> ...   # start from an SFT checkpoint folded in by
+#       training/merge_lora_adapter.py: fresh LoRA on top, so the KL reference (adapter off)
+#       is that frozen SFT checkpoint, not the base model
 # ============================================================================
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; cd "$HERE/.."
@@ -54,8 +57,13 @@ import json, sys, hashlib, pathlib, datetime
 d, seed, reward = pathlib.Path(sys.argv[1]), int(sys.argv[2]), sys.argv[3]
 st = json.load(open(d / "training_stats.json"))
 sha = hashlib.sha256(open(d / "final_model/model/adapter_model.safetensors", "rb").read()).hexdigest()[:16]
+import os
+start = os.environ.get("GRPO_START_MODEL", "unsloth/Qwen2.5-7B-Instruct")
+prov = pathlib.Path(start) / "merge_provenance.json"
 json.dump({"steps": st["global_step"], "seed": seed, "adapter_sha256": sha, "init_adapter": None,
-           "start_model": "unsloth/Qwen2.5-7B-Instruct", "method": f"grpo_{reward}_from_base",
+           "start_model": start, "kl_reference": start,
+           "start_merge": json.load(open(prov)) if prov.exists() else None,
+           "method": f"grpo_{reward}_from_{'sft' if prov.exists() else 'base'}",
            "finished": datetime.datetime.now().isoformat(timespec="seconds")},
           open(d / "DONE.json", "w"), indent=2)
 PY
