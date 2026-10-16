@@ -247,12 +247,29 @@ EOS_TOKEN_IDS = sorted({i for i in [tokenizer.eos_token_id,
                                     tokenizer.get_vocab().get("<|endoftext|>")]
                         if i is not None})
 
+# Optional vLLM generation (Unsloth fast_inference) — needs the /venv/grpo_vllm env
+# (env/setup_grpo_vllm.sh). The policy's base weights are shared with a colocated vLLM
+# engine; the current LoRA is pushed to vLLM as a fresh LoRARequest at every generation.
+USE_VLLM = os.environ.get("GRPO_USE_VLLM", "0") == "1"
+VLLM_GPU_UTIL = float(os.environ.get("GRPO_VLLM_GPU_UTIL", "0.35"))   # fraction of TOTAL GPU memory
+# "skip" (default): do not feed vLLM-path old_per_token_logps to the loss, exactly like the HF path
+# (generation aligned with the optimizer step, num_iterations 1 -> ratio = exp(logp - logp.detach())).
+# "keep": TRL/Unsloth vLLM default — an extra no-grad policy forward whose logps become the PPO "old"
+# logps (with lora_dropout > 0 they come from a different dropout mask, so ratio != 1 and clipping can act).
+VLLM_OLD_LOGPS = os.environ.get("GRPO_VLLM_OLD_LOGPS", "skip")
+assert VLLM_OLD_LOGPS in ("skip", "keep"), VLLM_OLD_LOGPS
+_vllm_kw = dict(fast_inference=True, max_lora_rank=HYPERPARAMS["lora_r"],
+                gpu_memory_utilization=VLLM_GPU_UTIL) if USE_VLLM else {}
+
 model, _ = FastLanguageModel.from_pretrained(
     model_name=START_ADAPTER or START_MODEL_DIR,
     max_seq_length=HYPERPARAMS["max_seq_length"],
     dtype=None,
     load_in_4bit=HYPERPARAMS["load_in_4bit"],
+    **_vllm_kw,
 )
+if USE_VLLM:
+    assert getattr(model, "vllm_engine", None) is not None, "fast_inference did not attach a vLLM engine"
 
 if START_ADAPTER:
     # Unsloth loaded base + the SFT adapter as a PEFT model; continue THAT adapter.
@@ -1117,6 +1134,7 @@ grpo_args = GRPOConfig(
     top_p=GRPO_KW["top_p"],
     beta=GRPO_KW["beta"],
     **LOSS_KW,
+    **(dict(use_vllm=True, vllm_mode="colocate") if USE_VLLM else {}),
 )
 
 # Guard the geometry: Unsloth silently resets pdbs to num_generations when
@@ -1130,6 +1148,15 @@ for k, v in LOSS_KW.items():
     assert getattr(grpo_args, k) == v, (k, getattr(grpo_args, k), v)
 assert tokenizer.eos_token == "<|im_end|>", tokenizer.eos_token
 assert grpo_args.seed == SEED and grpo_args.data_seed == SEED
+if USE_VLLM:
+    assert grpo_args.use_vllm and grpo_args.vllm_mode == "colocate"
+    # TIS / vLLM importance-sampling correction would change the objective: must be off (Unsloth
+    # 2026.1.4 defaults it to False and hard-disables the code path; asserted so an upgrade cannot flip it).
+    assert not getattr(grpo_args, "vllm_importance_sampling_correction", False)
+    assert grpo_args.top_k is None and grpo_args.min_p is None and grpo_args.repetition_penalty == 1.0
+    assert not grpo_args.generation_kwargs and getattr(grpo_args, "vllm_sampling_params", None) is None
+    # "skip" relies on generation being aligned with the optimizer step (HF path: old logps = None).
+    assert grpo_args.gradient_accumulation_steps % (grpo_args.steps_per_generation * grpo_args.num_iterations) == 0
 
 val_monitor = GRPOValidationCallback(
     val_df=val_df,
@@ -1158,8 +1185,40 @@ if ref_model is not None:
     trainer.ref_model = ref_model
 assert (trainer.ref_model is not None) == (REF_MODE == "start" and bool(START_ADAPTER))
 
+if USE_VLLM:
+    assert trainer.use_vllm and trainer.llm is model.vllm_engine
+    assert not getattr(trainer, "vllm_importance_sampling_correction", False)
+    if VLLM_OLD_LOGPS == "skip":
+        # With use_vllm, TRL 0.24 / Unsloth always run an extra no-grad policy forward right after
+        # generation and use it as old_per_token_logps. The HF path skips it (generation aligned with
+        # the optimizer step), so the loss uses per_token_logps.detach(). Make the vLLM path do the
+        # same: the first logps call after each generation (the "old" one: policy model, no grad)
+        # returns None -> old_per_token_logps is None -> the same loss as the HF path.
+        _orig_generate = trainer._generate
+        _orig_logps = trainer._get_per_token_logps_and_entropies
+        _skip_state = {"next_is_old": False, "skipped": 0}
+
+        def _generate_mark(*a, **k):
+            out = _orig_generate(*a, **k)
+            _skip_state["next_is_old"] = True
+            return out
+
+        def _logps_skip_old(model_, *a, **k):
+            if _skip_state["next_is_old"]:
+                _skip_state["next_is_old"] = False
+                assert model_ is trainer.model and not torch.is_grad_enabled(), "unexpected call order"
+                _skip_state["skipped"] += 1
+                return None, None
+            return _orig_logps(model_, *a, **k)
+
+        trainer._generate = _generate_mark
+        trainer._get_per_token_logps_and_entropies = _logps_skip_old
+    print(f"[vllm] gpu_memory_utilization={VLLM_GPU_UTIL}  old_per_token_logps={VLLM_OLD_LOGPS}  "
+          f"importance_sampling_correction={getattr(trainer, 'vllm_importance_sampling_correction', None)}")
+
 print("=" * 70)
-print("GRPO — CONTINUOUS reward, from the BASE model (fresh LoRA)")
+print("GRPO — CONTINUOUS reward" + (" — from SFT adapter" if START_ADAPTER else " — from the BASE model (fresh LoRA)"))
+print(f"generation:          {'vLLM (fast_inference, colocate)' if USE_VLLM else 'HF generate'}")
 print("=" * 70)
 print(f"run id / output:     {RUN_ID} -> {EXPERIMENT_DIR}")
 print(f"start model:         {START_MODEL_DIR}   (LoRA r{HYPERPARAMS['lora_r']} a{HYPERPARAMS['lora_alpha']})")
@@ -1188,7 +1247,7 @@ tokenizer.save_pretrained(str(FINAL_MODEL_DIR / "tokenizer"))
 with open(EXPERIMENT_DIR / "training_stats.json", "w") as f:
     json.dump({"global_step": trainer.state.global_step, "max_steps": MAX_STEPS, "seed": SEED,
                "start_model": START_MODEL_DIR, "start_adapter": START_ADAPTER or None, "ref": REF_MODE,
-               "learning_rate": HYPERPARAMS["learning_rate"],
+               "learning_rate": HYPERPARAMS["learning_rate"], "generation": "vllm" if USE_VLLM else "hf",
                "train_runtime": (getattr(trainer_stats, "metrics", {}) or {}).get("train_runtime"),
                "resumed_from": RESUME_CHECKPOINT}, f, indent=2)
 print("Done.")

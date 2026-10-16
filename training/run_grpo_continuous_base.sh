@@ -12,6 +12,7 @@
 #   bash training/run_grpo_continuous_base.sh                    # seed 123456
 #   SEED=25478 bash training/run_grpo_continuous_base.sh         # another seed
 #   GRPO_SMOKE=1 MAX_STEPS=2 TEST_N=8 bash training/run_grpo_continuous_base.sh   # wiring test
+#   GRPO_USE_VLLM=1 ...   # vLLM generation inside GRPO (build /venv/grpo_vllm: bash env/setup_grpo_vllm.sh)
 #   # from an SFT adapter, KL anchored to it (frozen copy), e.g. SFT step 2000 + 2500 GRPO:
 #   GRPO_START_ADAPTER=experiments/sft_mp52_s123456_to2000/final_model/model GRPO_LR=5e-7 \
 #     MAX_STEPS=2500 RUN_ID=grpo_cont_sft2000_s123456 bash training/run_grpo_continuous_base.sh
@@ -30,6 +31,15 @@ TEST_CSV="${TEST_CSV:-Data/source/mp_52_test.csv.gz}"; TEST_N="${TEST_N:-8096}"
 GPU_MEM_UTIL="${GPU_MEM_UTIL:-0.90}"; GEN_CHUNK="${GEN_CHUNK:-1000}"
 RESULTS_DIR="${RESULTS_DIR:-results/grpo_continuous_base_s${SEED}}"
 PY="${PYTHON:-/venv/py312/bin/python}"; VLLM_PY="${VLLM_PYTHON:-/venv/vllm/bin/python}"
+# GRPO_USE_VLLM=1: generate with vLLM inside GRPO (~2x faster per step on this box); needs the
+# /venv/grpo_vllm env (env/setup_grpo_vllm.sh). Eval/validation always use PY / VLLM_PY as before.
+if [ "${GRPO_USE_VLLM:-0}" = "1" ]; then
+  TRAIN_PY="${TRAIN_PY:-/venv/grpo_vllm/bin/python}"
+  # separate compile caches so the two training envs never overwrite each other's generated code
+  export UNSLOTH_COMPILE_LOCATION="${UNSLOTH_COMPILE_LOCATION:-$HOME/.cache/unsloth_compiled_grpo_vllm}"
+  export VLLM_CACHE_ROOT="${VLLM_CACHE_ROOT:-$HOME/.cache/vllm_grpo}"
+fi
+TRAIN_PY="${TRAIN_PY:-$PY}"
 export UNSLOTH_DISABLE_DOUBLE_BUFFER="${UNSLOTH_DISABLE_DOUBLE_BUFFER:-1}"
 export VLLM_USE_FLASHINFER_SAMPLER="${VLLM_USE_FLASHINFER_SAMPLER:-0}"
 export VLLM_ATTENTION_BACKEND="${VLLM_ATTENTION_BACKEND:-FLASH_ATTN}"
@@ -45,7 +55,7 @@ trained () {  # training_stats.json written only after global_step == MAX_STEPS
 for i in $(seq 1 "$TRAIN_RETRIES"); do
   if trained; then echo "[$RUN_ID] trained ($MAX_STEPS steps, verified)"; break; fi
   echo "[$RUN_ID] train attempt $i/$TRAIN_RETRIES ($(date -u +%FT%TZ))"
-  "$PY" training/grpo_continuous_base.py 2>&1 | tee -a "logs/${RUN_ID}_train.log" || true
+  "$TRAIN_PY" training/grpo_continuous_base.py 2>&1 | tee -a "logs/${RUN_ID}_train.log" || true
   trained || sleep 30
 done
 trained || { echo "[FATAL] $RUN_ID not trained after $TRAIN_RETRIES attempts"; exit 1; }
