@@ -1,0 +1,10 @@
+{
+  "steps": 2000,
+  "schedule_max_steps": 4500,
+  "seed": 25478,
+  "adapter_sha256": "7b9667143ccf04ed",
+  "init_adapter": null,
+  "train_csv": "Data/curriculum_k_sweep_s25478/train_mp52_k0000.csv.gz",
+  "note": "step 2000 of the seed-25478 pure-MPTS-52 SFT run (cks25478_k0000), recreated with --stop_at_step",
+  "finished": "2026-10-17T22:46:23"
+}
