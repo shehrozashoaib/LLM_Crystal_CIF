@@ -1,0 +1,12 @@
+{
+  "steps": 2500,
+  "seed": 123456,
+  "adapter_sha256": "ad6b1307b5c0a985",
+  "init_adapter": "experiments/sft_mp52_s123456_to2000/final_model/model",
+  "init_adapter_sha256": "224cfdb5ab441e17",
+  "start_model": "unsloth/Qwen2.5-7B-Instruct",
+  "kl_reference": "start",
+  "learning_rate": 5e-07,
+  "method": "grpo_continuous_from_sft",
+  "finished": "2026-10-19T07:20:06"
+}
