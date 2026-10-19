@@ -1,0 +1,13 @@
+Validation Summary for generated/grpo_disc_sft2000_s123456/generated_cifs_grpo_disc_sft2000_s123456_10seq_maxtok3072_0_8095.csv
+Generated on: 2026-10-19 03:38:17
+Total samples: 8096
+Success rate: 26.2%
+
+================================================================================
+RMSE PANEL (StructureMatcher RMS, Å)
+================================================================================
+Strict matched RMS  (n=12269): mean=0.162  median=0.069  std=0.172  min=0.000  max=0.500
+Near-miss RMS (all valid gens, n=44306): mean=0.510  median=0.590  std=0.260
+  bins:  <0.5: 16130   0.5-1.0: 28056   1.0-1.5: 120   >=1.5: 0
+
+Detailed statistics saved in: experiments/grpo_disc_sft2000_s123456/validation_seed123456/validation_20261019_011232_mp52_16bit_10sequences_mp52_grpo_disc_sft2000_s123456/validation_20261019_011232_10sequences_mp52_grpo_disc_sft2000_s123456_16bit.csv
