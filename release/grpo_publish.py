@@ -11,6 +11,8 @@ Companion to training/run_grpo_continuous_base.sh started from a merged SFT chec
   * the final GRPO adapter + DONE.json / stats      -> HF  <RUN_ID>/{model,tokenizer,...}
   * the generation CSV (8,096 x 10)                 -> GitHub <RESULTS_DIR>/<RUN_ID>/predicted_cifs.csv.gz
   * the validation panel + traces + train_DONE.json -> GitHub <RESULTS_DIR>/<RUN_ID>/
+  * per-step training curves (release/grpo_step_stats.py): reward_per_step.csv,
+    train_log_history.jsonl.gz                      -> GitHub <RESULTS_DIR>/<RUN_ID>/
 
 GitHub pushes reuse release/curriculum_k_sweep_publish.py's publish-only clone (fetch,
 re-apply, push, retry; never force). State: experiments/grpo_publish_state_<RUN_ID>.json.
@@ -33,6 +35,7 @@ from huggingface_hub import CommitOperationAdd, HfApi
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import curriculum_k_sweep_publish as kp            # noqa: E402  (git_publish, settled, log, gen rows)
+import grpo_step_stats                              # noqa: E402
 
 ROOT = kp.ROOT
 SEED = kp.SEED
@@ -146,6 +149,8 @@ def push_val(st: dict) -> None:
         for f in sorted(rd.iterdir()):            # train_DONE.json, *_trace.jsonl.gz (not the CSV again)
             if f.is_file() and f.name != "predicted_cifs.csv.gz":
                 shutil.copy2(f, out / f.name); paths.append((out / f.name).relative_to(pub))
+        # reward_per_step.csv + train_log_history.jsonl.gz (reward mean/var, KL, loss per step)
+        paths += [p.relative_to(pub) for p in grpo_step_stats.write(EXP, out)]
         return paths
     kp.git_publish(w, f"{RUN}: validation panel + reward/val traces")
     st["done"].append("val"); save_state(st)
