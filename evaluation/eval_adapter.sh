@@ -36,7 +36,8 @@ echo "[$RUN_ID] adapter $MD ($ASHA), seed $SEED, $TEST_N x $RET_SEQS"
 
 # ---- Generate ------------------------------------------------------------------
 GDIR="generated/$RUN_ID"; mkdir -p "$GDIR"
-GCSV="$GDIR/generated_cifs_${RUN_ID}_${RET_SEQS}seq_maxtok${MAX_NEW_TOKENS}_0_$((TEST_N-1)).csv"
+# generate_cifs_vllm.py names its output after the adapter's run directory (not RUN_ID/EVAL_TAG)
+GCSV="$GDIR/generated_cifs_$(basename "$EXP")_${RET_SEQS}seq_maxtok${MAX_NEW_TOKENS}_0_$((TEST_N-1)).csv"
 META="{\"adapter_sha256\": \"$ASHA\", \"seed\": $SEED, \"temperature\": $TEMPERATURE, \"top_p\": $TOP_P, \"ret_seqs\": $RET_SEQS, \"max_new_tokens\": $MAX_NEW_TOKENS, \"system_prompt\": \"$SYSTEM_PROMPT\", \"test_csv\": \"$TEST_CSV\", \"test_n\": $TEST_N}"
 if [ -f "$GDIR/gen_meta.json" ]; then
   "$PY" -c "import json,sys; sys.exit(0 if json.load(open('$GDIR/gen_meta.json'))==json.loads('''$META''') else 1)" \
