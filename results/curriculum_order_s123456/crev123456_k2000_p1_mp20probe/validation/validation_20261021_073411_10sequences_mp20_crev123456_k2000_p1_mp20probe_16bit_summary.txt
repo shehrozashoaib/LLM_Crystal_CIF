@@ -1,0 +1,13 @@
+Validation Summary for generated/crev123456_k2000_p1_mp20probe/generated_cifs_crev123456_k2000_p1_10seq_maxtok3072_0_999.csv
+Generated on: 2026-10-21 07:57:44
+Total samples: 1000
+Success rate: 51.9%
+
+================================================================================
+RMSE PANEL (StructureMatcher RMS, Å)
+================================================================================
+Strict matched RMS  (n=3554): mean=0.069  median=0.001  std=0.136  min=0.000  max=0.500
+Near-miss RMS (all valid gens, n=6735): mean=0.297  median=0.340  std=0.276
+  bins:  <0.5: 4460   0.5-1.0: 2274   1.0-1.5: 1   >=1.5: 0
+
+Detailed statistics saved in: experiments/crev123456_k2000_p1/validation_seed123456_mp20probe/validation_20261021_073411_mp20_16bit_10sequences_mp20_crev123456_k2000_p1_mp20probe/validation_20261021_073411_10sequences_mp20_crev123456_k2000_p1_mp20probe_16bit.csv
