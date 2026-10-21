@@ -1,0 +1,9 @@
+run,stage,test_set,n,best_of_10,path
+forward k=2500,after MP-20 phase (2500),MP-20 probe,1000,65.8,results/curriculum_order_s123456/cks123456_k2500_p1_mp20probe
+forward k=2500,after MPTS-52 phase (4500),MP-20 probe,1000,56.9,results/curriculum_order_s123456/cks123456_k2500_mp20probe
+forward k=2500,after MPTS-52 phase (4500),MPTS-52 test,8096,27.38,results/curriculum_k_sweep_s123456/cks123456_k2500
+forward k=2000,after MPTS-52 phase (4500),MPTS-52 test,8096,27.96,results/curriculum_k_sweep_s123456/cks123456_k2000
+reverse (k=2000 crystals),after MPTS-52 phase (2500),MP-20 probe,1000,51.9,results/curriculum_order_s123456/crev123456_k2000_p1_mp20probe
+reverse (k=2000 crystals),after MP-20 phase (4500),MP-20 probe,1000,69.0,results/curriculum_order_s123456/crev123456_k2000_mp20probe
+reverse (k=2000 crystals),after MP-20 phase (4500),MPTS-52 test,8096,25.95,results/curriculum_order_s123456/crev123456_k2000
+pure MPTS-52 (k=0),4500,MPTS-52 test,8096,30.3,results/curriculum_k_sweep_s123456/cks123456_k0000

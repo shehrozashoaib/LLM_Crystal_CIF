@@ -1,0 +1,6 @@
+comparison,delta_pp,a_only,b_only,mcnemar_p
+forward forgetting on MP-20 (4500 vs 2500),-8.9,53,142,1.411544344276783e-10
+reverse MP-20 gain (4500 vs 2500),17.1,211,40,3.029542914066364e-29
+final models on MP-20: reverse vs forward k=2500,12.1,171,50,1.1142185190956385e-16
+"MPTS-52: reverse vs forward k=2000 (same crystals+steps, order only)",-2.01,448,611,6.115453984837252e-07
+MPTS-52: reverse vs pure MPTS-52,-4.35,374,726,1.325692254503165e-26
