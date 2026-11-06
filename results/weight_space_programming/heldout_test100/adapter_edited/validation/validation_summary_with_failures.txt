@@ -1,0 +1,22 @@
+Validation Summary
+Generated on: 2026-11-06 01:37:32.596909
+Total samples: 100
+Success rate: 30.0%
+
+FAILURE ANALYSIS
+==================================================
+Complete failures: 70/100 (70.0%)
+
+Top 5 Failing Space Groups:
+  71: 100.0% (2.0/2.0)
+  123: 100.0% (1.0/1.0)
+  55: 100.0% (2.0/2.0)
+  65: 100.0% (1.0/1.0)
+  5: 100.0% (2.0/2.0)
+
+Most Problematic Compositions:
+  LuNiGe2: 1 failures
+  YMn2O5: 1 failures
+  Ce2InCuSe5: 1 failures
+  CsPrCdTe3: 1 failures
+  YCuPbS3: 1 failures

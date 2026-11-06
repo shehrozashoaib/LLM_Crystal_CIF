@@ -1,0 +1,77 @@
+{
+ "pass": 32,
+ "type": "generate",
+ "model": "both",
+ "n": 2,
+ "max_tokens": 3072,
+ "edit_manifest": {
+  "base_model.model.model.layers.26.self_attn.o_proj.lora_A.weight": "67846a62fd27adae",
+  "base_model.model.model.layers.26.self_attn.o_proj.lora_B.weight": "66ca74e6b9a244f6"
+ },
+ "files": {
+  "original": "/workspace/wsp/runs/adapter/work/gen_32_original.jsonl",
+  "edited": "/workspace/wsp/runs/adapter/work/gen_32_edited.jsonl"
+ },
+ "results": {
+  "original": {
+   "generations": 256,
+   "graded": 256,
+   "mean_tokens": 1336.5,
+   "cut_at_max_tokens_share": 0.0078,
+   "all": {
+    "n": 256,
+    "problems": 128,
+    "match_accuracy_per_generation": 0.2656,
+    "best_of_2_per_problem": 0.3281,
+    "valid_share": 0.7852,
+    "parseable_share": 0.9531,
+    "composition_correct_share": 0.9531,
+    "space_group_correct_share": 0.5703,
+    "matched_rms_median": 0.0538,
+    "near_miss_rms_median_valid": 0.4921,
+    "outcomes": {
+     "valid_no_match": 133,
+     "match": 68,
+     "invalid_structure": 43,
+     "not_parseable": 12
+    }
+   }
+  },
+  "edited": {
+   "generations": 256,
+   "graded": 256,
+   "mean_tokens": 1335.6,
+   "cut_at_max_tokens_share": 0.0078,
+   "all": {
+    "n": 256,
+    "problems": 128,
+    "match_accuracy_per_generation": 0.2773,
+    "best_of_2_per_problem": 0.3359,
+    "valid_share": 0.7969,
+    "parseable_share": 0.9492,
+    "composition_correct_share": 0.9492,
+    "space_group_correct_share": 0.5938,
+    "matched_rms_median": 0.0827,
+    "near_miss_rms_median_valid": 0.4716,
+    "outcomes": {
+     "valid_no_match": 133,
+     "match": 71,
+     "invalid_structure": 39,
+     "not_parseable": 13
+    }
+   }
+  }
+ },
+ "paired_comparison": {
+  "items": 128,
+  "accuracy_difference_edited_minus_original": 0.0117,
+  "standard_error": 0.0152,
+  "samples_wrong_to_right": 11,
+  "samples_right_to_wrong": 8,
+  "best_of_2_original": 0.3281,
+  "best_of_2_edited": 0.3359,
+  "problems_gained_best_of_n": 3,
+  "problems_lost_best_of_n": 2
+ },
+ "seconds": 304
+}

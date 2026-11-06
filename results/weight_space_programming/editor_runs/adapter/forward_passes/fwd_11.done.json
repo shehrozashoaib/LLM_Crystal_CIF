@@ -1,0 +1,83 @@
+{
+ "pass": 11,
+ "type": "generate",
+ "model": "both",
+ "n": 2,
+ "max_tokens": 3072,
+ "edit_manifest": {
+  "base_model.model.model.layers.13.self_attn.v_proj.lora_A.weight": "f86c2405cb77030f",
+  "base_model.model.model.layers.13.self_attn.v_proj.lora_B.weight": "ef3528fc7482fbc8",
+  "base_model.model.model.layers.14.self_attn.v_proj.lora_A.weight": "19b92bcfadd15405",
+  "base_model.model.model.layers.14.self_attn.v_proj.lora_B.weight": "48bdf520b0cd5dba",
+  "base_model.model.model.layers.19.self_attn.v_proj.lora_A.weight": "2ab6f78c1b4d4de2",
+  "base_model.model.model.layers.19.self_attn.v_proj.lora_B.weight": "44428db9b1e7731e"
+ },
+ "files": {
+  "original": "/workspace/wsp/runs/adapter/work/gen_11_original.jsonl",
+  "edited": "/workspace/wsp/runs/adapter/work/gen_11_edited.jsonl"
+ },
+ "results": {
+  "original": {
+   "generations": 256,
+   "graded": 256,
+   "mean_tokens": 1447.1,
+   "cut_at_max_tokens_share": 0.0117,
+   "all": {
+    "n": 256,
+    "problems": 128,
+    "match_accuracy_per_generation": 0.2422,
+    "best_of_2_per_problem": 0.3047,
+    "valid_share": 0.7656,
+    "parseable_share": 0.9414,
+    "composition_correct_share": 0.9258,
+    "space_group_correct_share": 0.5156,
+    "matched_rms_median": 0.0513,
+    "near_miss_rms_median_valid": 0.5337,
+    "outcomes": {
+     "valid_no_match": 132,
+     "match": 62,
+     "invalid_structure": 45,
+     "not_parseable": 15,
+     "valid_wrong_composition": 2
+    }
+   }
+  },
+  "edited": {
+   "generations": 256,
+   "graded": 256,
+   "mean_tokens": 1476.6,
+   "cut_at_max_tokens_share": 0.0156,
+   "all": {
+    "n": 256,
+    "problems": 128,
+    "match_accuracy_per_generation": 0.168,
+    "best_of_2_per_problem": 0.2188,
+    "valid_share": 0.7188,
+    "parseable_share": 0.9023,
+    "composition_correct_share": 0.8555,
+    "space_group_correct_share": 0.3867,
+    "matched_rms_median": 0.0845,
+    "near_miss_rms_median_valid": 0.5642,
+    "outcomes": {
+     "valid_no_match": 134,
+     "invalid_structure": 47,
+     "match": 43,
+     "not_parseable": 25,
+     "valid_wrong_composition": 7
+    }
+   }
+  }
+ },
+ "paired_comparison": {
+  "items": 128,
+  "accuracy_difference_edited_minus_original": -0.0742,
+  "standard_error": 0.0236,
+  "samples_wrong_to_right": 7,
+  "samples_right_to_wrong": 26,
+  "best_of_2_original": 0.3047,
+  "best_of_2_edited": 0.2188,
+  "problems_gained_best_of_n": 3,
+  "problems_lost_best_of_n": 14
+ },
+ "seconds": 345
+}

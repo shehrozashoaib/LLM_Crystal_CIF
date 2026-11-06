@@ -1,0 +1,32 @@
+{
+ "pass": 4,
+ "type": "teacher_forced",
+ "model": "original",
+ "texts": 326,
+ "tokens": 522049,
+ "max_len": 2992,
+ "edit_manifest": {},
+ "dir": "/workspace/wsp/runs/adapter/work/fwd_4",
+ "files": {
+  "token_logprobs.npy": [
+   326,
+   2992
+  ],
+  "tokens.npy": [
+   326,
+   2992
+  ],
+  "topk_ids.npy": [
+   326,
+   2992,
+   5
+  ],
+  "topk_logprobs.npy": [
+   326,
+   2992,
+   5
+  ]
+ },
+ "mean_token_logprob": -0.2382,
+ "seconds": 66
+}

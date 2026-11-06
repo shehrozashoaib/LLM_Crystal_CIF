@@ -1,0 +1,72 @@
+{
+ "pass": 9,
+ "type": "teacher_forced",
+ "model": "original",
+ "texts": 512,
+ "tokens": 72366,
+ "max_len": 225,
+ "edit_manifest": {},
+ "dir": "/workspace/wsp/runs/base/work/fwd_9",
+ "files": {
+  "hidden_L10.npy": [
+   512,
+   225,
+   3584
+  ],
+  "hidden_L14.npy": [
+   512,
+   225,
+   3584
+  ],
+  "hidden_L18.npy": [
+   512,
+   225,
+   3584
+  ],
+  "hidden_L22.npy": [
+   512,
+   225,
+   3584
+  ],
+  "hidden_L26.npy": [
+   512,
+   225,
+   3584
+  ],
+  "hidden_L27.npy": [
+   512,
+   225,
+   3584
+  ],
+  "hidden_L6.npy": [
+   512,
+   225,
+   3584
+  ],
+  "mlp_L28.npy": [
+   512,
+   225,
+   18944
+  ],
+  "token_logprobs.npy": [
+   512,
+   225
+  ],
+  "tokens.npy": [
+   512,
+   225
+  ],
+  "topk_ids.npy": [
+   512,
+   225,
+   20
+  ],
+  "topk_logprobs.npy": [
+   512,
+   225,
+   20
+  ]
+ },
+ "mean_token_logprob": -2.6134,
+ "seconds": 46
+}

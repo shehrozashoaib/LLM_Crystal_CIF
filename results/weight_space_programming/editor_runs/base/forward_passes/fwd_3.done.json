@@ -1,0 +1,47 @@
+{
+ "pass": 3,
+ "type": "teacher_forced",
+ "model": "original",
+ "texts": 200,
+ "tokens": 166089,
+ "max_len": 1007,
+ "edit_manifest": {},
+ "dir": "/workspace/wsp/runs/base/work/fwd_3",
+ "files": {
+  "hidden_L27.npy": [
+   200,
+   1007,
+   3584
+  ],
+  "hidden_L28.npy": [
+   200,
+   1007,
+   3584
+  ],
+  "mlp_L28.npy": [
+   200,
+   1007,
+   18944
+  ],
+  "token_logprobs.npy": [
+   200,
+   1007
+  ],
+  "tokens.npy": [
+   200,
+   1007
+  ],
+  "topk_ids.npy": [
+   200,
+   1007,
+   20
+  ],
+  "topk_logprobs.npy": [
+   200,
+   1007,
+   20
+  ]
+ },
+ "mean_token_logprob": -0.8428,
+ "seconds": 63
+}

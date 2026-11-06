@@ -1,0 +1,79 @@
+{
+ "pass": 39,
+ "type": "generate",
+ "model": "both",
+ "n": 2,
+ "max_tokens": 3072,
+ "edit_manifest": {
+  "base_model.model.model.layers.26.self_attn.o_proj.lora_A.weight": "f2023646093b4eba",
+  "base_model.model.model.layers.26.self_attn.o_proj.lora_B.weight": "8dc411cd3d50d32e"
+ },
+ "files": {
+  "original": "/workspace/wsp/runs/adapter/work/gen_39_original.jsonl",
+  "edited": "/workspace/wsp/runs/adapter/work/gen_39_edited.jsonl"
+ },
+ "results": {
+  "original": {
+   "generations": 256,
+   "graded": 256,
+   "mean_tokens": 1368.2,
+   "cut_at_max_tokens_share": 0.0039,
+   "all": {
+    "n": 256,
+    "problems": 128,
+    "match_accuracy_per_generation": 0.2305,
+    "best_of_2_per_problem": 0.2734,
+    "valid_share": 0.8125,
+    "parseable_share": 0.9648,
+    "composition_correct_share": 0.9531,
+    "space_group_correct_share": 0.6094,
+    "matched_rms_median": 0.0456,
+    "near_miss_rms_median_valid": 0.5349,
+    "outcomes": {
+     "valid_no_match": 147,
+     "match": 59,
+     "invalid_structure": 39,
+     "not_parseable": 9,
+     "valid_wrong_composition": 2
+    }
+   }
+  },
+  "edited": {
+   "generations": 256,
+   "graded": 256,
+   "mean_tokens": 1345.0,
+   "cut_at_max_tokens_share": 0.0,
+   "all": {
+    "n": 256,
+    "problems": 128,
+    "match_accuracy_per_generation": 0.207,
+    "best_of_2_per_problem": 0.25,
+    "valid_share": 0.8203,
+    "parseable_share": 0.9727,
+    "composition_correct_share": 0.9609,
+    "space_group_correct_share": 0.5938,
+    "matched_rms_median": 0.0456,
+    "near_miss_rms_median_valid": 0.5391,
+    "outcomes": {
+     "valid_no_match": 155,
+     "match": 53,
+     "invalid_structure": 39,
+     "not_parseable": 7,
+     "valid_wrong_composition": 2
+    }
+   }
+  }
+ },
+ "paired_comparison": {
+  "items": 128,
+  "accuracy_difference_edited_minus_original": -0.0234,
+  "standard_error": 0.0183,
+  "samples_wrong_to_right": 6,
+  "samples_right_to_wrong": 12,
+  "best_of_2_original": 0.2734,
+  "best_of_2_edited": 0.25,
+  "problems_gained_best_of_n": 3,
+  "problems_lost_best_of_n": 6
+ },
+ "seconds": 197
+}

@@ -1,0 +1,60 @@
+{
+ "base": {
+  "api_messages": 256,
+  "tokens": {
+   "input_tokens": 514,
+   "cache_creation_input_tokens": 679508,
+   "cache_read_input_tokens": 100357634,
+   "output_tokens": 454382
+  },
+  "total_input_incl_cache": 101037656,
+  "tool_calls": {
+   "Read": 5,
+   "Bash": 248,
+   "ToolSearch": 1,
+   "Write": 3,
+   "SubagentHandback": 1
+  },
+  "first": "2026-11-05T21:44:49.352Z",
+  "last": "2026-11-06T02:08:08.858Z",
+  "forward_passes_used": 50,
+  "budget": 50,
+  "code_runs": 189,
+  "passes_by_type": {
+   "generate": 36,
+   "teacher_forced": 14
+  },
+  "failed_requests": 4,
+  "generations_run": 18350,
+  "gpu_pass_seconds": 6665.4,
+  "kernel_seconds": 4474
+ },
+ "adapter": {
+  "api_messages": 189,
+  "tokens": {
+   "input_tokens": 378,
+   "cache_creation_input_tokens": 531483,
+   "cache_read_input_tokens": 58301350,
+   "output_tokens": 331869
+  },
+  "total_input_incl_cache": 58833211,
+  "tool_calls": {
+   "Read": 1,
+   "Bash": 187,
+   "SubagentHandback": 1
+  },
+  "first": "2026-11-05T21:44:49.378Z",
+  "last": "2026-11-06T01:26:01.417Z",
+  "forward_passes_used": 50,
+  "budget": 50,
+  "code_runs": 139,
+  "passes_by_type": {
+   "generate": 27,
+   "teacher_forced": 23
+  },
+  "failed_requests": 0,
+  "generations_run": 13824,
+  "gpu_pass_seconds": 9351.1,
+  "kernel_seconds": 355
+ }
+}

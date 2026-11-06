@@ -1,0 +1,13 @@
+Validation Summary for /workspace/wsp/eval/adapter_unedited/generated/generated_cifs_adapters_10seq_maxtok3072_0_99.csv
+Generated on: 2026-11-05 21:46:56
+Total samples: 100
+Success rate: 29.0%
+
+================================================================================
+RMSE PANEL (StructureMatcher RMS, Å)
+================================================================================
+Strict matched RMS  (n=197): mean=0.096  median=0.045  std=0.124  min=0.000  max=0.500
+Near-miss RMS (all valid gens, n=612): mean=0.488  median=0.618  std=0.295
+  bins:  <0.5: 230   0.5-1.0: 382   1.0-1.5: 0   >=1.5: 0
+
+Detailed statistics saved in: /workspace/wsp/eval/adapter_unedited/validation/validation_20261105_214522_mp52_16bit_10sequences_mp52_adapter_unedited/validation_20261105_214522_10sequences_mp52_adapter_unedited_16bit.csv

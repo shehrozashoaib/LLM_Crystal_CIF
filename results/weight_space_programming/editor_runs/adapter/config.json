@@ -1,0 +1,6 @@
+{
+ "kind": "adapter",
+ "base_model": "/workspace/models/Qwen/Qwen2.5-7B-Instruct",
+ "adapter": "/workspace/models/adapters/rank_r32_s3407/model",
+ "gpu_mem_util": 0.4
+}

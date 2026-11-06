@@ -1,0 +1,76 @@
+{
+ "pass": 35,
+ "type": "generate",
+ "model": "both",
+ "n": 1,
+ "max_tokens": 3072,
+ "edit_manifest": {
+  "model.layers.27.mlp.down_proj.weight": "85d751b9d59c16cf",
+  "model.layers.27.mlp.gate_proj.weight": "9cb0bbbb1aa9b2da",
+  "model.layers.27.mlp.up_proj.weight": "76ff2538d40b2ff4"
+ },
+ "files": {
+  "original": "/workspace/wsp/runs/base/work/gen_35_original.jsonl",
+  "edited": "/workspace/wsp/runs/base/work/gen_35_edited.jsonl"
+ },
+ "results": {
+  "original": {
+   "generations": 256,
+   "graded": 256,
+   "mean_tokens": 1369.4,
+   "cut_at_max_tokens_share": 0.168,
+   "all": {
+    "n": 256,
+    "problems": 256,
+    "match_accuracy_per_generation": 0.0,
+    "best_of_1_per_problem": 0.0,
+    "valid_share": 0.0547,
+    "parseable_share": 0.0547,
+    "composition_correct_share": 0.0,
+    "space_group_correct_share": 0.0039,
+    "matched_rms_median": null,
+    "near_miss_rms_median_valid": null,
+    "outcomes": {
+     "not_parseable": 242,
+     "valid_wrong_composition": 14
+    }
+   }
+  },
+  "edited": {
+   "generations": 256,
+   "graded": 256,
+   "mean_tokens": 824.6,
+   "cut_at_max_tokens_share": 0.0898,
+   "all": {
+    "n": 256,
+    "problems": 256,
+    "match_accuracy_per_generation": 0.0,
+    "best_of_1_per_problem": 0.0,
+    "valid_share": 0.4297,
+    "parseable_share": 0.4453,
+    "composition_correct_share": 0.1875,
+    "space_group_correct_share": 0.0039,
+    "matched_rms_median": null,
+    "near_miss_rms_median_valid": 0.4326,
+    "outcomes": {
+     "not_parseable": 142,
+     "valid_wrong_composition": 64,
+     "valid_no_match": 46,
+     "invalid_structure": 4
+    }
+   }
+  }
+ },
+ "paired_comparison": {
+  "items": 256,
+  "accuracy_difference_edited_minus_original": 0.0,
+  "standard_error": 0.0,
+  "samples_wrong_to_right": 0,
+  "samples_right_to_wrong": 0,
+  "best_of_1_original": 0.0,
+  "best_of_1_edited": 0.0,
+  "problems_gained_best_of_n": 0,
+  "problems_lost_best_of_n": 0
+ },
+ "seconds": 235
+}

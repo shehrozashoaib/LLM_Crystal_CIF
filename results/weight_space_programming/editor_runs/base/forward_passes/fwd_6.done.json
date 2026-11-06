@@ -1,0 +1,41 @@
+{
+ "pass": 6,
+ "type": "generate",
+ "model": "edited",
+ "n": 2,
+ "max_tokens": 3072,
+ "edit_manifest": {
+  "model.layers.27.mlp.down_proj.weight": "27e0e4aca2f1ac1c"
+ },
+ "files": {
+  "edited": "/workspace/wsp/runs/base/work/gen_6.jsonl"
+ },
+ "results": {
+  "edited": {
+   "generations": 512,
+   "graded": 512,
+   "mean_tokens": 788.3,
+   "cut_at_max_tokens_share": 0.1035,
+   "all": {
+    "n": 512,
+    "problems": 256,
+    "match_accuracy_per_generation": 0.0098,
+    "best_of_2_per_problem": 0.0156,
+    "valid_share": 0.5781,
+    "parseable_share": 0.5977,
+    "composition_correct_share": 0.3301,
+    "space_group_correct_share": 0.0098,
+    "matched_rms_median": 0.4189,
+    "near_miss_rms_median_valid": 0.4092,
+    "outcomes": {
+     "not_parseable": 206,
+     "valid_no_match": 161,
+     "valid_wrong_composition": 130,
+     "invalid_structure": 10,
+     "match": 5
+    }
+   }
+  }
+ },
+ "seconds": 104
+}

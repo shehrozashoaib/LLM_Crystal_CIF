@@ -1,0 +1,79 @@
+{
+ "pass": 50,
+ "type": "generate",
+ "model": "both",
+ "n": 2,
+ "max_tokens": 3072,
+ "edit_manifest": {
+  "base_model.model.model.layers.27.self_attn.o_proj.lora_A.weight": "3fe1e1bcadb52b27",
+  "base_model.model.model.layers.27.self_attn.o_proj.lora_B.weight": "7f313f17628fea28"
+ },
+ "files": {
+  "original": "/workspace/wsp/runs/adapter/work/gen_50_original.jsonl",
+  "edited": "/workspace/wsp/runs/adapter/work/gen_50_edited.jsonl"
+ },
+ "results": {
+  "original": {
+   "generations": 256,
+   "graded": 256,
+   "mean_tokens": 1508.6,
+   "cut_at_max_tokens_share": 0.0117,
+   "all": {
+    "n": 256,
+    "problems": 128,
+    "match_accuracy_per_generation": 0.1367,
+    "best_of_2_per_problem": 0.1562,
+    "valid_share": 0.8008,
+    "parseable_share": 0.9492,
+    "composition_correct_share": 0.9375,
+    "space_group_correct_share": 0.5664,
+    "matched_rms_median": 0.019,
+    "near_miss_rms_median_valid": 0.6187,
+    "outcomes": {
+     "valid_no_match": 168,
+     "invalid_structure": 38,
+     "match": 35,
+     "not_parseable": 13,
+     "valid_wrong_composition": 2
+    }
+   }
+  },
+  "edited": {
+   "generations": 256,
+   "graded": 256,
+   "mean_tokens": 1520.9,
+   "cut_at_max_tokens_share": 0.0078,
+   "all": {
+    "n": 256,
+    "problems": 128,
+    "match_accuracy_per_generation": 0.1328,
+    "best_of_2_per_problem": 0.1562,
+    "valid_share": 0.7891,
+    "parseable_share": 0.9492,
+    "composition_correct_share": 0.9336,
+    "space_group_correct_share": 0.5664,
+    "matched_rms_median": 0.0233,
+    "near_miss_rms_median_valid": 0.6004,
+    "outcomes": {
+     "valid_no_match": 164,
+     "invalid_structure": 41,
+     "match": 34,
+     "not_parseable": 13,
+     "valid_wrong_composition": 4
+    }
+   }
+  }
+ },
+ "paired_comparison": {
+  "items": 128,
+  "accuracy_difference_edited_minus_original": -0.0039,
+  "standard_error": 0.013,
+  "samples_wrong_to_right": 4,
+  "samples_right_to_wrong": 5,
+  "best_of_2_original": 0.1562,
+  "best_of_2_edited": 0.1562,
+  "problems_gained_best_of_n": 2,
+  "problems_lost_best_of_n": 2
+ },
+ "seconds": 551
+}

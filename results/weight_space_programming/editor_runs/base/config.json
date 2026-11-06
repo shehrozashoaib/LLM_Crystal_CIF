@@ -1,0 +1,6 @@
+{
+ "kind": "base",
+ "base_model": "/workspace/models/Qwen/Qwen2.5-7B-Instruct",
+ "adapter": null,
+ "gpu_mem_util": 0.4
+}

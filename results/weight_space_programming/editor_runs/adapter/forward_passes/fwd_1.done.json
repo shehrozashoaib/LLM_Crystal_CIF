@@ -1,0 +1,40 @@
+{
+ "pass": 1,
+ "type": "generate",
+ "model": "original",
+ "n": 4,
+ "max_tokens": 3072,
+ "edit_manifest": {},
+ "files": {
+  "original": "/workspace/wsp/runs/adapter/work/gen_1.jsonl",
+  "original_activations": "/workspace/wsp/runs/adapter/work/gen_1_acts"
+ },
+ "results": {
+  "original": {
+   "generations": 512,
+   "graded": 512,
+   "mean_tokens": 1497.0,
+   "cut_at_max_tokens_share": 0.0078,
+   "all": {
+    "n": 512,
+    "problems": 128,
+    "match_accuracy_per_generation": 0.1816,
+    "best_of_4_per_problem": 0.2969,
+    "valid_share": 0.7871,
+    "parseable_share": 0.9395,
+    "composition_correct_share": 0.9219,
+    "space_group_correct_share": 0.5586,
+    "matched_rms_median": 0.1248,
+    "near_miss_rms_median_valid": 0.5766,
+    "outcomes": {
+     "valid_no_match": 303,
+     "match": 93,
+     "invalid_structure": 78,
+     "not_parseable": 31,
+     "valid_wrong_composition": 7
+    }
+   }
+  }
+ },
+ "seconds": 391
+}

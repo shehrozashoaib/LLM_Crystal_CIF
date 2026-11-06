@@ -1,0 +1,44 @@
+{
+ "pass": 18,
+ "type": "generate",
+ "model": "edited",
+ "n": 2,
+ "max_tokens": 3072,
+ "edit_manifest": {
+  "model.layers.26.mlp.down_proj.weight": "6ebf81633f3d96f8",
+  "model.layers.26.mlp.gate_proj.weight": "f77e6468b16169c0",
+  "model.layers.26.mlp.up_proj.weight": "c00f37f907c35033",
+  "model.layers.27.mlp.down_proj.weight": "f89f7dc1976e3636"
+ },
+ "files": {
+  "edited": "/workspace/wsp/runs/base/work/gen_18.jsonl"
+ },
+ "results": {
+  "edited": {
+   "generations": 512,
+   "graded": 512,
+   "mean_tokens": 736.1,
+   "cut_at_max_tokens_share": 0.082,
+   "all": {
+    "n": 512,
+    "problems": 256,
+    "match_accuracy_per_generation": 0.0137,
+    "best_of_2_per_problem": 0.0234,
+    "valid_share": 0.5801,
+    "parseable_share": 0.5938,
+    "composition_correct_share": 0.3457,
+    "space_group_correct_share": 0.0098,
+    "matched_rms_median": 0.401,
+    "near_miss_rms_median_valid": 0.48,
+    "outcomes": {
+     "not_parseable": 208,
+     "valid_no_match": 167,
+     "valid_wrong_composition": 123,
+     "match": 7,
+     "invalid_structure": 7
+    }
+   }
+  }
+ },
+ "seconds": 171
+}

@@ -1,0 +1,13 @@
+Validation Summary for /workspace/wsp/eval/base_unedited/generated/generated_cifs_models_10seq_maxtok3072_0_99.csv
+Generated on: 2026-11-05 21:36:30
+Total samples: 100
+Success rate: 0.0%
+
+================================================================================
+RMSE PANEL (StructureMatcher RMS, Å)
+================================================================================
+Strict matched RMS: no matches to report
+Near-miss RMS (all valid gens, n=1): mean=0.523  median=0.523  std=0.000
+  bins:  <0.5: 0   0.5-1.0: 1   1.0-1.5: 0   >=1.5: 0
+
+Detailed statistics saved in: /workspace/wsp/eval/base_unedited/validation/validation_20261105_213626_mp52_16bit_10sequences_mp52_base_unedited/validation_20261105_213626_10sequences_mp52_base_unedited_16bit.csv

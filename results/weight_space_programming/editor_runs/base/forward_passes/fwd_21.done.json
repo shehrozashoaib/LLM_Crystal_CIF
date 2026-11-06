@@ -1,0 +1,43 @@
+{
+ "pass": 21,
+ "type": "generate",
+ "model": "edited",
+ "n": 1,
+ "max_tokens": 1000,
+ "edit_manifest": {
+  "model.layers.27.mlp.down_proj.weight": "818474a84c6a1de7",
+  "model.layers.27.mlp.gate_proj.weight": "fe2e613b7d1952fb",
+  "model.layers.27.mlp.up_proj.weight": "150273a5493f5e9b"
+ },
+ "files": {
+  "edited": "/workspace/wsp/runs/base/work/gen_21.jsonl"
+ },
+ "results": {
+  "edited": {
+   "generations": 512,
+   "graded": 512,
+   "mean_tokens": 461.8,
+   "cut_at_max_tokens_share": 0.0918,
+   "all": {
+    "n": 512,
+    "problems": 512,
+    "match_accuracy_per_generation": 0.1562,
+    "best_of_1_per_problem": 0.1562,
+    "valid_share": 0.6562,
+    "parseable_share": 0.6621,
+    "composition_correct_share": 0.4336,
+    "space_group_correct_share": 0.0801,
+    "matched_rms_median": 0.2698,
+    "near_miss_rms_median_valid": 0.3567,
+    "outcomes": {
+     "not_parseable": 173,
+     "valid_no_match": 141,
+     "valid_wrong_composition": 115,
+     "match": 80,
+     "invalid_structure": 3
+    }
+   }
+  }
+ },
+ "seconds": 79
+}

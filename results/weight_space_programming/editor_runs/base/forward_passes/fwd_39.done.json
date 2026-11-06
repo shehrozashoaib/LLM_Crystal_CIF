@@ -1,0 +1,78 @@
+{
+ "pass": 39,
+ "type": "generate",
+ "model": "both",
+ "n": 10,
+ "max_tokens": 3072,
+ "edit_manifest": {
+  "model.layers.27.mlp.down_proj.weight": "85d751b9d59c16cf",
+  "model.layers.27.mlp.gate_proj.weight": "9cb0bbbb1aa9b2da",
+  "model.layers.27.mlp.up_proj.weight": "76ff2538d40b2ff4"
+ },
+ "files": {
+  "original": "/workspace/wsp/runs/base/work/gen_39_original.jsonl",
+  "edited": "/workspace/wsp/runs/base/work/gen_39_edited.jsonl"
+ },
+ "results": {
+  "original": {
+   "generations": 250,
+   "graded": 250,
+   "mean_tokens": 1254.3,
+   "cut_at_max_tokens_share": 0.128,
+   "all": {
+    "n": 250,
+    "problems": 25,
+    "match_accuracy_per_generation": 0.0,
+    "best_of_10_per_problem": 0.0,
+    "valid_share": 0.068,
+    "parseable_share": 0.072,
+    "composition_correct_share": 0.004,
+    "space_group_correct_share": 0.0,
+    "matched_rms_median": null,
+    "near_miss_rms_median_valid": null,
+    "outcomes": {
+     "not_parseable": 232,
+     "valid_wrong_composition": 16,
+     "valid_no_match": 1,
+     "invalid_structure": 1
+    }
+   }
+  },
+  "edited": {
+   "generations": 250,
+   "graded": 250,
+   "mean_tokens": 921.2,
+   "cut_at_max_tokens_share": 0.124,
+   "all": {
+    "n": 250,
+    "problems": 25,
+    "match_accuracy_per_generation": 0.0,
+    "best_of_10_per_problem": 0.0,
+    "valid_share": 0.42,
+    "parseable_share": 0.432,
+    "composition_correct_share": 0.22,
+    "space_group_correct_share": 0.0,
+    "matched_rms_median": null,
+    "near_miss_rms_median_valid": null,
+    "outcomes": {
+     "not_parseable": 142,
+     "valid_no_match": 54,
+     "valid_wrong_composition": 51,
+     "invalid_structure": 3
+    }
+   }
+  }
+ },
+ "paired_comparison": {
+  "items": 25,
+  "accuracy_difference_edited_minus_original": 0.0,
+  "standard_error": 0.0,
+  "samples_wrong_to_right": 0,
+  "samples_right_to_wrong": 0,
+  "best_of_10_original": 0.0,
+  "best_of_10_edited": 0.0,
+  "problems_gained_best_of_n": 0,
+  "problems_lost_best_of_n": 0
+ },
+ "seconds": 248
+}

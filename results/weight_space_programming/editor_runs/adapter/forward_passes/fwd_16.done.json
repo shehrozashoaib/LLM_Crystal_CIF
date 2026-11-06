@@ -1,0 +1,81 @@
+{
+ "pass": 16,
+ "type": "generate",
+ "model": "both",
+ "n": 2,
+ "max_tokens": 3072,
+ "edit_manifest": {
+  "base_model.model.model.layers.22.self_attn.o_proj.lora_A.weight": "7bdc1f029b6297e5",
+  "base_model.model.model.layers.22.self_attn.q_proj.lora_B.weight": "e76ab885f88f8429",
+  "base_model.model.model.layers.23.self_attn.o_proj.lora_A.weight": "26bd046db401e2c0",
+  "base_model.model.model.layers.23.self_attn.q_proj.lora_B.weight": "872e059bb2e4583f"
+ },
+ "files": {
+  "original": "/workspace/wsp/runs/adapter/work/gen_16_original.jsonl",
+  "edited": "/workspace/wsp/runs/adapter/work/gen_16_edited.jsonl"
+ },
+ "results": {
+  "original": {
+   "generations": 256,
+   "graded": 256,
+   "mean_tokens": 1503.2,
+   "cut_at_max_tokens_share": 0.0195,
+   "all": {
+    "n": 256,
+    "problems": 128,
+    "match_accuracy_per_generation": 0.1914,
+    "best_of_2_per_problem": 0.2266,
+    "valid_share": 0.7812,
+    "parseable_share": 0.9609,
+    "composition_correct_share": 0.9258,
+    "space_group_correct_share": 0.5508,
+    "matched_rms_median": 0.0596,
+    "near_miss_rms_median_valid": 0.5825,
+    "outcomes": {
+     "valid_no_match": 144,
+     "match": 49,
+     "invalid_structure": 46,
+     "not_parseable": 10,
+     "valid_wrong_composition": 7
+    }
+   }
+  },
+  "edited": {
+   "generations": 256,
+   "graded": 256,
+   "mean_tokens": 1498.4,
+   "cut_at_max_tokens_share": 0.0156,
+   "all": {
+    "n": 256,
+    "problems": 128,
+    "match_accuracy_per_generation": 0.1875,
+    "best_of_2_per_problem": 0.2188,
+    "valid_share": 0.7617,
+    "parseable_share": 0.9609,
+    "composition_correct_share": 0.9453,
+    "space_group_correct_share": 0.5391,
+    "matched_rms_median": 0.0755,
+    "near_miss_rms_median_valid": 0.6187,
+    "outcomes": {
+     "valid_no_match": 144,
+     "invalid_structure": 51,
+     "match": 48,
+     "not_parseable": 10,
+     "valid_wrong_composition": 3
+    }
+   }
+  }
+ },
+ "paired_comparison": {
+  "items": 128,
+  "accuracy_difference_edited_minus_original": -0.0039,
+  "standard_error": 0.013,
+  "samples_wrong_to_right": 5,
+  "samples_right_to_wrong": 6,
+  "best_of_2_original": 0.2266,
+  "best_of_2_edited": 0.2188,
+  "problems_gained_best_of_n": 2,
+  "problems_lost_best_of_n": 3
+ },
+ "seconds": 350
+}

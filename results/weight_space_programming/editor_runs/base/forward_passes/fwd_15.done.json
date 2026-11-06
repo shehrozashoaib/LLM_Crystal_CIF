@@ -1,0 +1,47 @@
+{
+ "pass": 15,
+ "type": "teacher_forced",
+ "model": "edited",
+ "texts": 960,
+ "tokens": 135422,
+ "max_len": 225,
+ "edit_manifest": {
+  "model.layers.26.mlp.down_proj.weight": "66666040268dde79",
+  "model.layers.26.mlp.gate_proj.weight": "f77e6468b16169c0",
+  "model.layers.26.mlp.up_proj.weight": "f4558ff2c8f29216",
+  "model.layers.27.mlp.down_proj.weight": "a09679533afa8f4f"
+ },
+ "dir": "/workspace/wsp/runs/base/work/fwd_15",
+ "files": {
+  "hidden_L27.npy": [
+   960,
+   225,
+   3584
+  ],
+  "mlp_L27.npy": [
+   960,
+   225,
+   18944
+  ],
+  "token_logprobs.npy": [
+   960,
+   225
+  ],
+  "tokens.npy": [
+   960,
+   225
+  ],
+  "topk_ids.npy": [
+   960,
+   225,
+   20
+  ],
+  "topk_logprobs.npy": [
+   960,
+   225,
+   20
+  ]
+ },
+ "mean_token_logprob": -2.0253,
+ "seconds": 53
+}

@@ -1,0 +1,78 @@
+{
+ "pass": 33,
+ "type": "generate",
+ "model": "both",
+ "n": 1,
+ "max_tokens": 3072,
+ "edit_manifest": {
+  "model.layers.27.mlp.down_proj.weight": "85d751b9d59c16cf",
+  "model.layers.27.mlp.gate_proj.weight": "9cb0bbbb1aa9b2da",
+  "model.layers.27.mlp.up_proj.weight": "4d442bc521dac10f"
+ },
+ "files": {
+  "original": "/workspace/wsp/runs/base/work/gen_33_original.jsonl",
+  "edited": "/workspace/wsp/runs/base/work/gen_33_edited.jsonl"
+ },
+ "results": {
+  "original": {
+   "generations": 256,
+   "graded": 256,
+   "mean_tokens": 1340.7,
+   "cut_at_max_tokens_share": 0.1562,
+   "all": {
+    "n": 256,
+    "problems": 256,
+    "match_accuracy_per_generation": 0.0,
+    "best_of_1_per_problem": 0.0,
+    "valid_share": 0.0547,
+    "parseable_share": 0.0547,
+    "composition_correct_share": 0.0039,
+    "space_group_correct_share": 0.0,
+    "matched_rms_median": null,
+    "near_miss_rms_median_valid": null,
+    "outcomes": {
+     "not_parseable": 242,
+     "valid_wrong_composition": 13,
+     "valid_no_match": 1
+    }
+   }
+  },
+  "edited": {
+   "generations": 256,
+   "graded": 256,
+   "mean_tokens": 829.8,
+   "cut_at_max_tokens_share": 0.1016,
+   "all": {
+    "n": 256,
+    "problems": 256,
+    "match_accuracy_per_generation": 0.0117,
+    "best_of_1_per_problem": 0.0117,
+    "valid_share": 0.5078,
+    "parseable_share": 0.5195,
+    "composition_correct_share": 0.1758,
+    "space_group_correct_share": 0.0039,
+    "matched_rms_median": 0.4029,
+    "near_miss_rms_median_valid": 0.499,
+    "outcomes": {
+     "not_parseable": 123,
+     "valid_wrong_composition": 87,
+     "valid_no_match": 40,
+     "invalid_structure": 3,
+     "match": 3
+    }
+   }
+  }
+ },
+ "paired_comparison": {
+  "items": 256,
+  "accuracy_difference_edited_minus_original": 0.0117,
+  "standard_error": 0.0067,
+  "samples_wrong_to_right": 3,
+  "samples_right_to_wrong": 0,
+  "best_of_1_original": 0.0,
+  "best_of_1_edited": 0.0117,
+  "problems_gained_best_of_n": 3,
+  "problems_lost_best_of_n": 0
+ },
+ "seconds": 245
+}
