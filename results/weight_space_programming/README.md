@@ -140,10 +140,12 @@ with a handoff every 40 turns. Raw numbers are in `eval/agent_usage.json`.
   4,096 tokens per text.
 - `env/setup_vllm.sh` has CRLF line endings and fails as committed; a CR-stripped copy was
   run instead.
-- **Edited weights are not in this folder** (repo policy: no weights in git). The adapter
-  edit is reproducible from the formula in its `final_answer.md`; the base edit depends on
-  activations recorded during the run (`editor_runs/base/scripts/` are the agent's own
-  rebuild scripts).
+- **Edited weights are on Hugging Face, not in git** (repo policy: no weights in git):
+  [huggingface.co/shehrozashoaib/LLM_Crystal_CIF/tree/main/weight_space_programming](https://huggingface.co/shehrozashoaib/LLM_Crystal_CIF/tree/main/weight_space_programming).
+  `adapter_edited_rank_r32_s3407/model` is a complete drop-in adapter;
+  `base_edited_qwen2.5_7b_instruct/edited_tensors.safetensors` holds the three edited base
+  tensors in bf16 with `apply_edit.py` to write a full edited model. Both are exactly the
+  weights that were evaluated here.
 
 ## Layout
 
